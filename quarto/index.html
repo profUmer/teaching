@@ -1,0 +1,119 @@
+<!doctype html>
+<!--
+  Landing page for the published decks.
+
+  Deliberately plain, self-contained HTML: it is the entry point for GitHub
+  Pages, and itch.io requires an index.html at the root of the uploaded zip.
+  Nothing here is generated, so `quarto render` leaves it alone.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Umer's Slides</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1c1f23;
+    --muted: #55606b;
+    --accent: #8d1b1b;
+    --line: #e2e5e9;
+    --card: #fbfbfc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181c; --fg: #e8eaed; --muted: #a7b0b8;
+      --accent: #e2756f; --line: #2b3138; --card: #1c2026;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 3rem 1.25rem 4rem;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  main { max-width: 46rem; margin: 0 auto; }
+
+  header { border-bottom: 2px solid var(--accent); padding-bottom: 1rem; margin-bottom: 2rem; }
+  h1 { font-size: 1.75rem; margin: 0 0 0.25rem; color: var(--accent); }
+  .sub { color: var(--muted); margin: 0; }
+
+  .deck {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .deck:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .deck h2 { margin: 0 0 0.3rem; font-size: 1.15rem; color: var(--accent); }
+  .deck p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+  .tags { margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .tag {
+    font-size: 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+    color: var(--muted);
+  }
+
+  /* One page, more than one course - a small label above each group. */
+  .course {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 2rem 0 0.7rem;
+  }
+  .course:first-of-type { margin-top: 0; }
+
+  .note {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  kbd {
+    font: inherit;
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 0 0.35em;
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <header>
+    <h1>Umer's Slides</h1>
+    <p class="sub">Umer Noor, PhD · Faculty of Media, Creative Arts, and Design, Humber Polytechnic</p>
+  </header>
+
+  <p class="course">Game Math 1</p>
+
+  <a class="deck" href="matrices.html">
+    <h2>Matrices for 2D</h2>
+    <p>What is a matrix? The scale, translate, and rotate matrices. Multiplying them with the dumptruck method.</p>
+  </a>
+
+  <p class="note">
+    While presenting: <kbd>f</kbd> fullscreen, <kbd>o</kbd> slide overview,
+    <kbd>b</kbd> chalkboard, <kbd>s</kbd> speaker notes,
+    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> to move.
+  </p>
+
+</main>
+</body>
+</html>

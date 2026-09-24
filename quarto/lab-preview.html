@@ -1,0 +1,92 @@
+<!doctype html>
+<!-- Standalone harness for the interactive labs, so they can be tweaked
+     without re-rendering a whole deck. Serve the quarto/ folder and open this:
+
+       python -m http.server 8000
+       http://localhost:8000/lab-preview.html
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>transform-lab preview</title>
+<link rel="stylesheet" href="assets/slides.css">
+<style>
+  body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 1100px; color: #1c1f23; }
+  h2 { color: #8d1b1b; font-weight: 600; }
+  section { margin-bottom: 3rem; }
+  .lab { font-size: 1rem; }
+</style>
+<script type="module" src="./assets/labs.js"></script>
+</head>
+<body>
+
+<section>
+  <h2>Scale</h2>
+  <div class="lab-mount" data-lab="2d" data-stages="scale" data-kx="1.5" data-ky="1.5" data-reorder="false"></div>
+</section>
+
+<section>
+  <h2>Rotation in 2D</h2>
+  <div class="lab-mount" data-lab="2d" data-stages="rotate" data-theta="30" data-reorder="false"></div>
+</section>
+
+<section>
+  <h2>Order matters</h2>
+  <div class="lab-mount" data-lab="2d" data-stages="rotate,scale,translate"
+       data-theta="60" data-kx="1.5" data-ky="1.5" data-dx="3" data-dy="0"></div>
+</section>
+
+<section>
+  <h2>Multiplying two 3x3 transforms</h2>
+  <div class="lab-mount" data-lab="matmul" data-a-label="T" data-b-label="S"></div>
+</section>
+
+<section>
+  <h2>Point vs. direction under one translation</h2>
+  <div class="lab-mount" data-lab="matmul" data-a-label="T"
+       data-a="1,0,3,0,1,-1,0,0,1"
+       data-bs="2,1,1;2,1,0" data-bs-labels="pos,dir" data-cs-labels="Tpos,Tdir"></div>
+</section>
+
+<section>
+  <h2>Polar form</h2>
+  <div class="lab-mount" data-lab="polar"></div>
+</section>
+
+<section>
+  <h2>Vector addition</h2>
+  <div class="lab-mount" data-lab="add"></div>
+</section>
+
+<section>
+  <h2>Dot product and projection</h2>
+  <div class="lab-mount" data-lab="dot"></div>
+</section>
+
+<section>
+  <h2>Collision with a non-axis-aligned boundary</h2>
+  <div class="lab-mount" data-lab="reflect" data-preset="peggle"></div>
+</section>
+
+<section id="position">
+  <h2>Position (Physics 1)</h2>
+  <div class="lab-mount" data-lab="motion" data-show="position"></div>
+</section>
+
+<section id="displacement">
+  <h2>Displacement and distance (Physics 1)</h2>
+  <div class="lab-mount" data-lab="motion" data-show="displacement"></div>
+</section>
+
+<section id="velocity">
+  <h2>Velocity and speed (Physics 1)</h2>
+  <div class="lab-mount" data-lab="motion" data-show="velocity"></div>
+</section>
+
+<section id="acceleration">
+  <h2>Acceleration (Physics 1)</h2>
+  <div class="lab-mount" data-lab="accel"></div>
+</section>
+
+</body>
+</html>

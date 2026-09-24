@@ -1,0 +1,476 @@
+<!doctype html>
+<!--
+  Automated check that the demos still work - not just that they draw.
+
+  Each test mounts a lab, synthesises a real pointer drag (or moves a slider),
+  then reads the numbers back out of the panel and compares them against values
+  worked out by hand. That covers the parts a screenshot cannot: hit-testing a
+  handle, the drag updating, and the readout recomputing.
+
+  Run it:  serve.cmd,  then  http://localhost:8000/lab-selftest.html
+  A green PASS list means the demos are behaving.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lab self-test</title>
+<link rel="stylesheet" href="assets/slides.css">
+<style>
+  body { font-family: system-ui, sans-serif; margin: 1.5rem; max-width: 1000px; color: #1c1f23; }
+  h1 { font-size: 1.3rem; color: #8d1b1b; }
+  #summary { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0 1rem; }
+  #out { font-family: ui-monospace, monospace; font-size: 0.82rem; line-height: 1.55; white-space: pre; }
+  .pass { color: #1d7a4c; }
+  .fail { color: #b3261e; font-weight: 600; }
+  /* The rig stays on screen: the labs only run their render loop while visible
+     (IntersectionObserver), and the transform lab's matrix readout is produced
+     inside that loop. Off-screen, it would never update. */
+  .rig { width: 900px; margin-top: 2rem; }
+  .rig .lab { font-size: 1rem; margin-bottom: 1.5rem; }
+  .rig .lab-stage { height: 320px; }
+  .rig h3 { font-size: 0.9rem; color: #55606b; margin: 0 0 0.3rem; }
+</style>
+</head>
+<body>
+
+<h1>Lab self-test</h1>
+<div id="summary">running…</div>
+<div id="out"></div>
+
+<!-- Mounted off-screen: the tests read numbers, they do not need to be seen.
+     Explicit data-view values keep the world-to-screen maths below exact. -->
+<div class="rig">
+  <div class="lab-mount" id="t-polar"   data-lab="polar"  data-view="5"></div>
+  <div class="lab-mount" id="t-add"     data-lab="add"    data-view="5"></div>
+  <div class="lab-mount" id="t-dot"     data-lab="dot"    data-view="5"></div>
+  <div class="lab-mount" id="t-reflect" data-lab="reflect" data-preset="peggle"></div>
+  <div class="lab-mount" id="t-2d"      data-lab="2d" data-stages="rotate,translate"
+       data-theta="60" data-dx="3" data-dy="0"></div>
+  <div class="lab-mount" id="t-matmul"  data-lab="matmul" data-a-label="T" data-b-label="S"></div>
+  <div class="lab-mount" id="t-matvec"  data-lab="matmul" data-a-label="T"
+       data-a="1,0,3,0,1,-1,0,0,1"
+       data-bs="2,1,1;2,1,0" data-bs-labels="pos,dir" data-cs-labels="Tpos,Tdir"></div>
+  <!-- Physics 1, Motion. data-cy overrides the deck's framing so the
+       world-to-screen maths below stays whole-numbered. -->
+  <div class="lab-mount" id="t-motion-p" data-lab="motion" data-show="position"     data-view="3" data-cy="0"></div>
+  <div class="lab-mount" id="t-motion-d" data-lab="motion" data-show="displacement" data-view="3" data-cy="0"></div>
+  <div class="lab-mount" id="t-motion-v" data-lab="motion" data-show="velocity"     data-view="3" data-cy="0"></div>
+  <div class="lab-mount" id="t-accel"    data-lab="accel"  data-view="30" data-cx="32" data-cy="12"></div>
+</div>
+
+<script type="module">
+import './assets/labs.js';
+
+const out = document.getElementById('out');
+const results = [];
+
+function record(ok, name, got, want) {
+  results.push({ ok, name, got, want });
+  const line = document.createElement('div');
+  line.className = ok ? 'pass' : 'fail';
+  line.textContent = `${ok ? 'PASS' : 'FAIL'}  ${name.padEnd(52)} got ${got}   want ${want}`;
+  out.appendChild(line);
+}
+
+function near(name, got, want, tol = 0.05) {
+  record(Number.isFinite(got) && Math.abs(got - want) <= tol, name, fmtN(got), fmtN(want));
+}
+
+function nearVec(name, got, want, tol = 0.05) {
+  const ok = got.length === 2 && want.every((w, i) => Math.abs(got[i] - w) <= tol);
+  record(ok, name, `[${got.map(fmtN).join(', ')}]`, `[${want.map(fmtN).join(', ')}]`);
+}
+
+const fmtN = (v) => (Number.isFinite(v) ? (Math.round(v * 1000) / 1000).toString() : String(v));
+
+/* ---------------------------------------------------------------- reading --- */
+
+function rowValue(labId, keyStartsWith) {
+  const lab = document.getElementById(labId);
+  for (const row of lab.querySelectorAll('.lab-value-row')) {
+    const key = row.querySelector('.lab-value-key').textContent.trim();
+    if (key.startsWith(keyStartsWith)) return row.querySelector('.lab-value-num').textContent.trim();
+  }
+  return null;
+}
+
+const num = (s) => parseFloat(String(s).replace(/[^\d.eE+-]/g, ''));
+const pair = (s) => {
+  const m = String(s).match(/-?[\d.]+/g) || [];
+  return [parseFloat(m[0]), parseFloat(m[1])];
+};
+
+function matrixCells(labId) {
+  return [...document.getElementById(labId).querySelectorAll('.lab-matrix-grid span')]
+    .map((c) => parseFloat(c.textContent));
+}
+
+/* -------------------------------------------------------------- driving ---- */
+
+/* Dispatches a real pointer drag in world coordinates. The mapping mirrors
+   makeStage2D: half-height is `view`, half-width follows the aspect ratio. */
+function drag(labId, from, to, { view, cx = 0, cy = 0 }) {
+  const canvas = document.getElementById(labId).querySelector('canvas');
+  const r = canvas.getBoundingClientRect();
+  const halfW = view * (r.width / r.height);
+  const screen = ([wx, wy]) => ({
+    clientX: r.left + (((wx - cx) / halfW) * 0.5 + 0.5) * r.width,
+    clientY: r.top + (0.5 - ((wy - cy) / view) * 0.5) * r.height,
+  });
+  const base = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', isPrimary: true };
+  canvas.dispatchEvent(new PointerEvent('pointerdown', { ...base, ...screen(from) }));
+  canvas.dispatchEvent(new PointerEvent('pointermove', { ...base, ...screen(to) }));
+  canvas.dispatchEvent(new PointerEvent('pointerup',   { ...base, ...screen(to) }));
+}
+
+/* Drags one draggable order-chip (transform-lab.js's orderChips) onto
+   another - screen pixels, not world units. All three events dispatch on the
+   chip itself, same as drag() does on the canvas above: orderChips has no
+   real pointer to capture under a synthetic PointerEvent, so delivery has to
+   come from the target rather than from capture. The drop lands on the
+   target's centre, which is well inside its slot, since orderChips snaps to
+   the nearest slot rather than tracking continuously. */
+function dragChip(fromChip, toChip) {
+  const mid = (r) => ({ clientX: (r.left + r.right) / 2, clientY: (r.top + r.bottom) / 2 });
+  const from = mid(fromChip.getBoundingClientRect());
+  const to = mid(toChip.getBoundingClientRect());
+  const base = { bubbles: true, cancelable: true, pointerId: 2, pointerType: 'mouse', isPrimary: true };
+  fromChip.dispatchEvent(new PointerEvent('pointerdown', { ...base, ...from }));
+  fromChip.dispatchEvent(new PointerEvent('pointermove', { ...base, ...to }));
+  fromChip.dispatchEvent(new PointerEvent('pointerup',   { ...base, ...to }));
+}
+
+function orderChipEls(labId) {
+  return [...document.getElementById(labId).querySelectorAll('.lab-order-chip')];
+}
+
+function setSlider(labId, labelText, value) {
+  const lab = document.getElementById(labId);
+  for (const row of lab.querySelectorAll('.lab-slider')) {
+    if (row.querySelector('.lab-slider-name').textContent.trim() === labelText) {
+      const input = row.querySelector('input');
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
+  }
+  return false;
+}
+
+/* Types into a slider's value box (lab-core.js's editable .lab-slider-value)
+   and commits it the way a real blur does - the handler is bound directly to
+   the box, so the event need not actually bubble. */
+function typeValue(labId, labelText, text) {
+  const lab = document.getElementById(labId);
+  for (const row of lab.querySelectorAll('.lab-slider')) {
+    if (row.querySelector('.lab-slider-name').textContent.trim() === labelText) {
+      const box = row.querySelector('.lab-slider-value');
+      box.value = text;
+      box.dispatchEvent(new Event('blur'));
+      return true;
+    }
+  }
+  return false;
+}
+
+/* setTimeout rather than requestAnimationFrame: rAF is throttled unpredictably
+   in headless Chrome, which made this hang. Drags update the readout
+   synchronously, so all that is needed is to let the task queue drain. */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function waitUntil(fn, timeout = 4000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeout) {
+    if (fn()) return true;
+    await sleep(25);
+  }
+  return false;
+}
+
+const ready = () => waitUntil(() =>
+  document.querySelectorAll('.rig canvas').length === 9
+  && document.querySelectorAll('#t-reflect .lab-value-row').length > 0
+  && document.querySelectorAll('#t-accel .lab-value-row').length > 0
+  && matrixCells('t-2d').length >= 9
+  && document.querySelectorAll('#t-matmul .lab-matrix-grid').length === 3
+  && document.querySelectorAll('#t-matvec .lab-matrix-grid').length === 6);
+
+/* ------------------------------------------------------------------ tests --- */
+
+async function run() {
+  if (!await ready()) {
+    document.getElementById('summary').textContent = 'FAILED: labs never mounted';
+    document.getElementById('summary').className = 'fail';
+    return;
+  }
+  await sleep(40);
+
+  /* -- which renderer actually drew each lab ------------------------------- */
+  /* The checks below read numbers out of the readout panel, which is what let
+     them survive the renderer swap - and exactly why they could not confirm it
+     happened. getContext('2d') returns null on a canvas already holding a WebGL
+     context, so this stays as a guard against anything reintroducing one.
+     See PLAN.md 2.1. */
+  for (const id of ['polar', 'add', 'dot', 'reflect', '2d',
+                    'motion-p', 'motion-d', 'motion-v', 'accel']) {
+    const canvas = document.getElementById(`t-${id}`).querySelector('canvas');
+    const kind = canvas.getContext('2d') ? 'canvas2d' : 'webgl';
+    record(kind === 'canvas2d', `${id.padEnd(8)} drawn by Canvas 2D`, kind, 'canvas2d');
+  }
+
+  /* -- polar: starts at [2,3] -> 3.61 angle 56.3, the deck's worked example -- */
+  nearVec('polar  initial [a, b]', pair(rowValue('t-polar', '[a, b]')), [2, 3]);
+  near('polar  initial r', num(rowValue('t-polar', 'r =')), 3.606, 0.01);
+  near('polar  initial theta', num(rowValue('t-polar', 'θ =')), 56.3, 0.1);
+
+  // drag the tip from (2,3) to the 3-4-5 triangle
+  drag('t-polar', [2, 3], [3, 4], { view: 5 });
+  await sleep(40);
+  nearVec('polar  after drag [a, b]', pair(rowValue('t-polar', '[a, b]')), [3, 4]);
+  near('polar  after drag r  (3-4-5)', num(rowValue('t-polar', 'r =')), 5, 0.02);
+  near('polar  after drag theta', num(rowValue('t-polar', 'θ =')), 53.13, 0.1);
+
+  /* -- add: A=[3,1] B=[-1,2.5] ------------------------------------------- */
+  nearVec('add    initial A + B', pair(rowValue('t-add', 'A + B')), [2, 3.5]);
+  drag('t-add', [3, 1], [1, 1], { view: 5 });          // move A to (1,1)
+  await sleep(40);
+  nearVec('add    after dragging A', pair(rowValue('t-add', 'A + B')), [0, 3.5]);
+
+  /* -- dot: A=[2,2.6] B=[3.4,0.6] ---------------------------------------- */
+  near('dot    initial A.B', num(rowValue('t-dot', 'A · B')), 8.36, 0.02);
+  // move A onto (0,3): A.B = 0*3.4 + 3*0.6 = 1.8
+  drag('t-dot', [2, 2.6], [0, 3], { view: 5 });
+  await sleep(40);
+  near('dot    after dragging A', num(rowValue('t-dot', 'A · B')), 1.8, 0.05);
+
+  /* -- reflect: the Peggle numbers ---------------------------------------- */
+  const RV = { view: 165, cx: 125, cy: 130 };
+  nearVec('reflect initial v_i', pair(rowValue('t-reflect', 'v')), [50, 10], 0.2);
+  nearVec('reflect initial B', pair(rowValue('t-reflect', '1.')), [150, 225], 0.2);
+  nearVec('reflect initial N', pair(rowValue('t-reflect', '2.')), [225, -150], 0.2);
+  near('reflect initial |N|', num(rowValue('t-reflect', '3.')), 270.4, 0.1);
+  nearVec('reflect initial N/|N|', pair(rowValue('t-reflect', 'N / |N|')), [0.832, -0.555], 0.002);
+  nearVec('reflect initial v_f', pair(rowValue('t-reflect', '5.')), [-10, 50], 0.2);
+
+  // drag the incoming-from point (75,127.5) to (75,100): v_i becomes [50, 37.5]
+  // by hand: -v.Nhat = -20.801, P = [-17.31, 11.54], v_f = [15.38, 60.58]
+  drag('t-reflect', [75, 127.5], [75, 100], RV);
+  await sleep(40);
+  nearVec('reflect after drag v_i', pair(rowValue('t-reflect', 'v')), [50, 37.5], 0.6);
+  nearVec('reflect after drag v_f', pair(rowValue('t-reflect', '5.')), [15.38, 60.58], 1.0);
+
+  /* -- 2d transform lab: sliders, and the draggable order chips ------------ */
+  // This lab recomputes its matrix inside the render loop, which by design only
+  // runs while the lab is on screen. In a deck that is always true; on this
+  // long test page it is not, so scroll to it first.
+  document.getElementById('t-2d').scrollIntoView({ block: 'center' });
+  await sleep(200);
+
+  // theta=60, dx=3, dy=0, order rotate then translate => TR
+  let m = matrixCells('t-2d');
+  near('2d     TR  m11 = cos60', m[0], 0.5, 0.01);
+  near('2d     TR  m12 = -sin60', m[1], -0.866, 0.01);
+  near('2d     TR  m13 = dx', m[2], 3, 0.01);
+  near('2d     TR  m23 = dy', m[5], 0, 0.01);
+
+  // the matrix readout is refreshed inside the render loop, so poll for it
+  const found = setSlider('t-2d', 'θ', 90);
+  record(found, '2d     theta slider was found', found, true);
+  // .lab-slider-value is a typed <input> now, not a <span> - read .value.
+  const shown = document.querySelector('#t-2d .lab-slider .lab-slider-value')?.value;
+  record(shown === '90°', '2d     theta slider shows new value', shown, '90°');
+  await waitUntil(() => Math.abs(matrixCells('t-2d')[0]) < 0.01);
+  m = matrixCells('t-2d');
+  near('2d     theta slider -> cos90', m[0], 0, 0.01);
+  near('2d     theta slider -> -sin90', m[1], -1, 0.01);
+
+  // typing a value into the box commits it exactly, the same way dragging
+  // the thumb does - this is the slider's new type-to-enter path
+  const typed = typeValue('t-2d', 'θ', '180');
+  record(typed, '2d     theta value box was found', typed, true);
+  await waitUntil(() => Math.abs(matrixCells('t-2d')[0] + 1) < 0.01);
+  m = matrixCells('t-2d');
+  near('2d     typed theta 180 -> cos180', m[0], -1, 0.01);
+  near('2d     typed theta 180 -> sin180', m[3], 0, 0.01);
+
+  // out-of-range text clamps to the slider's max instead of breaking the lab
+  typeValue('t-2d', 'θ', '9999');
+  const clamped = document.querySelector('#t-2d .lab-slider .lab-slider-value')?.value;
+  record(clamped === '360°', '2d     typed theta clamps to max', clamped, '360°');
+
+  // unparsable text reverts to the last valid value
+  typeValue('t-2d', 'θ', 'nope');
+  const reverted = document.querySelector('#t-2d .lab-slider .lab-slider-value')?.value;
+  record(reverted === '360°', '2d     unparsable typed value reverts', reverted, '360°');
+
+  // back to theta=90 - the RT check below is written against that value
+  typeValue('t-2d', 'θ', '90');
+  await waitUntil(() => Math.abs(matrixCells('t-2d')[0]) < 0.01);
+
+  // data-stages="rotate,translate" -> multiplication order starts as
+  // [Translate, Rotate] ("Translate x Rotate", i.e. TR). Dragging Translate
+  // onto Rotate flips it to [Rotate, Translate] (RT): application order
+  // reverses too, so translate now happens first.
+  const chips = orderChipEls('t-2d');
+  record(chips.length === 2, '2d     order chips exist', chips.length, 2);
+  const before = chips.map((c) => c.textContent).join(' ');
+  record(before === 'Translate Rotate', '2d     initial chip order', before, 'Translate Rotate');
+  if (chips.length === 2) {
+    dragChip(chips[0], chips[1]);
+    await waitUntil(() => Math.abs(matrixCells('t-2d')[5] - 3) < 0.02);
+    m = matrixCells('t-2d');
+    // RT with theta=90, [dx,dy]=[3,0]: third column = [3cos90 - 0, 3sin90 + 0] = [0, 3]
+    near('2d     RT  m13 = dx cos - dy sin', m[2], 0, 0.02);
+    near('2d     RT  m23 = dx sin + dy cos', m[5], 3, 0.02);
+    const after = orderChipEls('t-2d').map((c) => c.textContent).join(' ');
+    record(after === 'Rotate Translate', '2d     chips re-render in dropped order', after, 'Rotate Translate');
+  }
+
+  /* -- matmul: T x S step-through - T=[[1,0,1],[0,1,-1],[0,0,1]], S=diag(2,3,1) */
+  function matmulButton(labId, text) {
+    return [...document.querySelectorAll(`#${labId} .lab-button`)].find((b) => b.textContent === text);
+  }
+  function matmulC(labId) {
+    const grids = document.querySelectorAll(`#${labId} .lab-matrix-grid`);
+    return [...grids[2].querySelectorAll('span')].map((s) => s.textContent);
+  }
+
+  const mmNext = matmulButton('t-matmul', 'Next');
+  record(!!mmNext, 'matmul  Next button exists', !!mmNext, true);
+  if (mmNext) {
+    mmNext.click();
+    // TS11 = 1(2) + 0(0) + 1(0) = 2, and only that one cell should be filled
+    const afterOne = matmulC('t-matmul');
+    record(afterOne[0] === '2' && afterOne.slice(1).every((v) => v === ''),
+      'matmul  TS11 after one Next click', afterOne.join(','), '2,(rest blank)');
+    const hlA = document.querySelectorAll('#t-matmul .mm-hl-a').length;
+    const hlB = document.querySelectorAll('#t-matmul .mm-hl-b').length;
+    record(hlA === 3 && hlB === 3, 'matmul  row of T and column of S both highlighted',
+      `hlA=${hlA} hlB=${hlB}`, 'hlA=3 hlB=3');
+
+    for (let i = 0; i < 8; i++) mmNext.click();   // steps 2..9, finishing the matrix
+    const c = matmulC('t-matmul');
+    const want = ['2', '0', '1', '0', '3', '-1', '0', '0', '1'];   // hand-worked T x S
+    record(c.join(',') === want.join(','), 'matmul  full TS after all 9 steps', c.join(','), want.join(','));
+
+    matmulButton('t-matmul', 'Prev').click();
+    const afterPrev = matmulC('t-matmul');
+    record(afterPrev[8] === '', 'matmul  Prev un-computes the last cell', afterPrev.join(','), '...,(blank)');
+
+    matmulButton('t-matmul', 'Reset').click();
+    const cleared = matmulC('t-matmul');
+    record(cleared.every((v) => v === ''), 'matmul  Reset blanks the result', cleared.join(','), '(all blank)');
+  }
+
+  /* -- matvec: T x pos and T x dir, stacked, stepped together by row of T -- */
+  // T=[[1,0,3],[0,1,-1],[0,0,1]], pos=[2,1,1], dir=[2,1,0]
+  function matvecRow(i) { return document.querySelectorAll('#t-matvec .mm-multi-row')[i]; }
+  function matvecC(i) {
+    return [...matvecRow(i).querySelectorAll('.lab-matrix-grid')[2].querySelectorAll('span')]
+      .map((s) => s.textContent);
+  }
+  function matvecButton(text) {
+    return [...document.querySelectorAll('#t-matvec .lab-button')].find((b) => b.textContent === text);
+  }
+
+  const matmulButtons = [...document.querySelectorAll('#t-matmul .lab-button')].map((b) => b.textContent);
+  record(!matmulButtons.includes('Play'), 'matmul  no Play button (dumptruck demos are Prev/Next/Reset only)',
+    matmulButtons.join(','), 'no Play');
+
+  const mvNext = matvecButton('Next');
+  record(!!mvNext, 'matvec  Next button exists', !!mvNext, true);
+  record(!matvecButton('Play'), 'matvec  no Play button', !matvecButton('Play'), true);
+  record(document.querySelectorAll('#t-matvec .mm-multi-row').length === 2,
+    'matvec  two stacked equations (pos and dir)', document.querySelectorAll('#t-matvec .mm-multi-row').length, 2);
+
+  if (mvNext) {
+    // one shared step per row of T, so Next fills row i of BOTH pos and dir at once
+    mvNext.click();
+    record(matvecC(0)[0] === '5' && matvecC(1)[0] === '2'
+      && matvecC(0)[1] === '' && matvecC(1)[1] === '',
+      'matvec  row 0 of both Tpos and Tdir after one Next', `${matvecC(0).join('/')}  ${matvecC(1).join('/')}`,
+      '5,_,_ / 2,_,_');
+
+    const hlA = document.querySelectorAll('#t-matvec .mm-hl-a').length;
+    const hlB = document.querySelectorAll('#t-matvec .mm-hl-b').length;
+    const hlC = document.querySelectorAll('#t-matvec .mm-hl-c').length;
+    record(hlA === 6 && hlB === 6 && hlC === 2,
+      'matvec  both rows of T and both v columns highlighted together',
+      `hlA=${hlA} hlB=${hlB} hlC=${hlC}`, 'hlA=6 hlB=6 hlC=2');
+
+    mvNext.click(); mvNext.click();
+    // hand-worked: T x [2,1,1] = [5,0,1] (a point, moved by (3,-1));
+    // T x [2,1,0] = [2,1,0] (a direction, unmoved - w=0 zeroes the translation)
+    const pos = matvecC(0), dir = matvecC(1);
+    record(pos.join(',') === '5,0,1', 'matvec  Tpos fully computed', pos.join(','), '5,0,1');
+    record(dir.join(',') === '2,1,0', 'matvec  Tdir fully computed - unmoved by w=0', dir.join(','), '2,1,0');
+
+    matvecButton('Reset').click();
+    record(matvecC(0).every((v) => v === '') && matvecC(1).every((v) => v === ''),
+      'matvec  Reset blanks both results', `${matvecC(0).join(',')} / ${matvecC(1).join(',')}`, '(all blank)');
+  }
+
+  /* -- motion: the Motion deck's worked example, A=[1,2] B=[-1,1] t=2 ------ */
+  const MV = { view: 3, cx: 0, cy: 0 };
+
+  nearVec('motion  position A', pair(rowValue('t-motion-p', 'A =')), [1, 2]);
+  drag('t-motion-p', [1, 2], [0, 3], MV);
+  await sleep(40);
+  nearVec('motion  position after drag', pair(rowValue('t-motion-p', 'A =')), [0, 3]);
+
+  nearVec('motion  displacement B - A', pair(rowValue('t-motion-d', 'displacement')), [-2, -1]);
+  near('motion  distance = root 5', num(rowValue('t-motion-d', 'distance')), 2.236, 0.01);
+  // move A to (2,2): displacement becomes [-3,-1], distance root 10
+  drag('t-motion-d', [1, 2], [2, 2], MV);
+  await sleep(40);
+  nearVec('motion  displacement after drag', pair(rowValue('t-motion-d', 'displacement')), [-3, -1]);
+  near('motion  distance after drag', num(rowValue('t-motion-d', 'distance')), 3.162, 0.02);
+
+  /* velocity and speed are the same displacement divided by t, which is the
+     one thing on this deck that is not just Pythagoras */
+  nearVec('motion  velocity at t=2', pair(rowValue('t-motion-v', 'velocity')), [-1, -0.5]);
+  near('motion  speed at t=2', num(rowValue('t-motion-v', 'speed')), 1.118, 0.01);
+  const tFound = setSlider('t-motion-v', 't', 4);
+  record(tFound, 'motion  t slider was found', tFound, true);
+  await sleep(40);
+  nearVec('motion  velocity at t=4', pair(rowValue('t-motion-v', 'velocity')), [-0.5, -0.25]);
+  near('motion  speed at t=4', num(rowValue('t-motion-v', 'speed')), 0.559, 0.01);
+
+  /* -- accel: from rest to [62.5, 22] in 10 s -> [6.25, 2.2] m/s^2 -------- */
+  const AV = { view: 30, cx: 32, cy: 12 };
+  nearVec('accel   initial change in v', pair(rowValue('t-accel', 'change in velocity')), [62.5, 22]);
+  nearVec('accel   initial a = dv / t', pair(rowValue('t-accel', 'a =')), [6.25, 2.2], 0.01);
+
+  // drag the final velocity down to (62.5, 12): dv = [62.5, 12]
+  drag('t-accel', [62.5, 22], [62.5, 12], AV);
+  await sleep(40);
+  nearVec('accel   change in v after drag', pair(rowValue('t-accel', 'change in velocity')), [62.5, 12], 0.5);
+  nearVec('accel   a after drag', pair(rowValue('t-accel', 'a =')), [6.25, 1.2], 0.06);
+
+  // halving t doubles the acceleration and leaves the change in velocity alone
+  const atFound = setSlider('t-accel', 't', 5);
+  record(atFound, 'accel   t slider was found', atFound, true);
+  await sleep(40);
+  nearVec('accel   a at t=5', pair(rowValue('t-accel', 'a =')), [12.5, 2.4], 0.12);
+  nearVec('accel   change in v unaffected by t', pair(rowValue('t-accel', 'change in velocity')), [62.5, 12], 0.5);
+
+  /* -- summary ------------------------------------------------------------ */
+  const failed = results.filter((r) => !r.ok).length;
+  const s = document.getElementById('summary');
+  s.textContent = failed
+    ? `${failed} of ${results.length} checks FAILED`
+    : `all ${results.length} checks passed`;
+  s.className = failed ? 'fail' : 'pass';
+  document.title = failed ? `FAIL (${failed})` : 'PASS';
+}
+
+run().catch((err) => {
+  const s = document.getElementById('summary');
+  s.textContent = 'ERROR: ' + err.message;
+  s.className = 'fail';
+  console.error(err);
+});
+</script>
+
+</body>
+</html>

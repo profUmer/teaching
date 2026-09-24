@@ -1,0 +1,20 @@
+# Quarto's build cache
+/.quarto/
+
+# Rendered decks. `quarto publish gh-pages` renders fresh and pushes the result
+# to the gh-pages branch, so these do not belong in source control.
+matrices.html
+vectors.html
+motion.html
+matrices_files/
+vectors_files/
+motion_files/
+
+# Bundle built by tools/make-deploy.ps1 for itch.io / manual upload
+_deploy/
+_deploy.zip
+
+# index.html, lab-preview.html and lab-selftest.html are hand-written, not
+# generated - they are tracked.
+
+**/*.quarto_ipynb

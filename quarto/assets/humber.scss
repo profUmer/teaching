@@ -1,0 +1,27 @@
+/*-- scss:defaults --*/
+
+// Echoes the Beamer "beaver" colour theme the LaTeX decks used.
+$body-bg: #ffffff;
+$body-color: #1c1f23;
+$link-color: #8d1b1b;
+
+$presentation-heading-color: #8d1b1b;
+$presentation-heading-font-weight: 600;
+$presentation-font-size-root: 30px;
+
+/*-- scss:rules --*/
+
+.reveal .slides section { text-align: left; }
+
+.reveal h1,
+.reveal h2 { text-transform: none; }
+
+// Title slide: keep the logo modest rather than letting it fill the slide.
+.reveal .title-slide img { max-height: 90px; width: auto; }
+
+.reveal .footer { color: #6b747d; }
+
+// Figures carried over from the LaTeX decks are line art on white; give them
+// room to breathe instead of the default caption chrome.
+.reveal figure { margin: 0 auto; }
+.reveal figure figcaption { display: none; }

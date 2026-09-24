@@ -1,0 +1,371 @@
+/* Styling for the interactive labs (see transform-lab.js) plus a few
+   Beamer-isms carried over from the original decks. */
+
+/* ------------------------------------------------------------- lab layout */
+
+.lab {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 1.1rem;
+  align-items: stretch;
+  width: 100%;
+  font-size: 0.62em;
+}
+
+.lab-stage {
+  position: relative;
+  min-height: 320px;
+  border: 1px solid #e2e5e9;
+  border-radius: 6px;
+  background: #fcfcfd;
+  overflow: hidden;
+}
+
+.lab-canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+
+/* touch-action so dragging a handle on a tablet does not scroll the deck */
+.lab-vector .lab-canvas,
+.lab-motion .lab-canvas { touch-action: none; }
+.lab-vector .lab-canvas.over-handle,
+.lab-motion .lab-canvas.over-handle { cursor: grab; }
+.lab-vector .lab-canvas.grabbing,
+.lab-motion .lab-canvas.grabbing { cursor: grabbing; }
+
+.lab-failed::after {
+  content: "demo failed to load - see the browser console";
+  display: block;
+  color: #8d1b1b;
+  font-size: 0.7em;
+}
+
+/* reveal.js lays slides out in a fixed 1280x720 space and scales the result,
+   so a pixel height here is stable across projectors. This fills the slide
+   below a title and one line of lead-in. */
+.reveal .lab-stage {
+  min-height: 0;
+  height: 470px;
+}
+
+.lab-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- sliders */
+
+.lab-controls {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.lab-slider {
+  display: grid;
+  grid-template-columns: 3.1em minmax(0, 1fr) 3.6em;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lab-slider-name { font-style: italic; text-align: right; }
+
+/* An <input>, not a <span> - the value can be typed as well as dragged - but
+   reset to look like plain text until you actually reach for it, with a
+   border that only appears on hover/focus as the hint that it is live. */
+.lab-slider-value {
+  box-sizing: border-box;   /* else the padding below adds to width:100% instead of fitting inside it */
+  width: 100%;
+  min-width: 0;    /* an <input>'s default intrinsic width would else win over the grid track and overflow the panel */
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--r-code-font, monospace);
+  color: #55606b;
+  text-align: right;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 0.05em 0.25em;
+  margin: 0;
+}
+
+.lab-slider-value:hover { border-color: #d8dde2; }
+
+.lab-slider-value:focus {
+  outline: none;
+  color: #1c1f23;
+  background: #fff;
+  border-color: #8d1b1b;
+}
+
+.lab-slider input[type="range"] {
+  width: 100%;
+  accent-color: #8d1b1b;
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------- buttons */
+
+.lab-buttons { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+
+.lab-button {
+  font: inherit;
+  padding: 0.28em 0.85em;
+  border: 1px solid #8d1b1b;
+  border-radius: 999px;
+  background: #fff;
+  color: #8d1b1b;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.lab-button:hover { background: #8d1b1b; color: #fff; }
+
+/* ------------------------------------------------------- draggable order --- */
+/* Sits where lab-matrix-caption normally goes (transform-lab.js leaves that
+   caption blank when this is present) - words instead of italic text, but the
+   same "equation above the matrix" position and trailing "=". */
+
+.lab-order {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+  touch-action: none;   /* dragging a chip on a tablet must not scroll the deck */
+}
+
+.lab-order-chip {
+  padding: 0.15em 0.7em;
+  border: 1px solid #8d1b1b;
+  border-radius: 999px;
+  background: #fff;
+  color: #8d1b1b;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  position: relative;
+}
+
+.lab-order-chip.dragging {
+  cursor: grabbing;
+  z-index: 2;
+  background: #8d1b1b;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.lab-order-sep,
+.lab-order-eq {
+  color: #8d1b1b;
+  font-style: italic;
+}
+
+/* --------------------------------------------------------- matrix readout */
+
+.lab-matrix-caption {
+  font-style: italic;
+  color: #55606b;
+  font-size: 1.3em;
+  margin-bottom: 0.2rem;
+}
+
+.lab-matrix-caption:empty { display: none; }
+
+/* Round parentheses drawn with borders, so the readout looks like the
+   \pmatrix written on the neighbouring slides (matching columnVector()'s
+   canvas-drawn parentheses in draw2d.js, for the same reason) rather than
+   \bmatrix's square corners. Sized up from the lab's own shrunk 0.62em
+   (.lab, above) back to roughly the slide's normal text size, to match the
+   weight of that LaTeX rather than reading as a small side-readout. Centred
+   per column, as \pmatrix itself centres each entry - right-aligning inside
+   a wide fixed column was what left a visible gap between the bracket and a
+   short value like a lone 0.
+
+   Each paren is a pseudo-element: a box far taller than it is wide, with
+   border-radius: 50% turning it into a tall ellipse, and only the outer
+   side's border drawn - the classic CSS single-parenthesis trick. */
+.lab-matrix-grid {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(2.6em, auto));
+  gap: 0.12rem 0.5rem;
+  padding: 0.35em 0.9em;
+  font-family: var(--r-code-font, monospace);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.6em;
+  text-align: center;
+}
+
+.lab-matrix-grid::before,
+.lab-matrix-grid::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.5em;
+  border-radius: 50%;
+  /* Only one side gets a border below - top and bottom must stay unset
+     (not overridden to `none` from a `border: ...` shorthand), or their
+     colour still shows through as stray curvature at the two poles of the
+     ellipse instead of a clean single arc down one side. */
+}
+
+.lab-matrix-grid::before { left: 0; border-left: 2px solid #333; }
+.lab-matrix-grid::after { right: 0; border-right: 2px solid #333; }
+
+.lab-matrix-4 .lab-matrix-grid { grid-template-columns: repeat(4, minmax(3em, auto)); }
+
+/* ----------------------------------------------------- matrix multiply --- */
+/* No canvas stage here (see matmul-lab.js), so this overrides .lab's two-
+   column stage|panel grid with a single centred column instead. Three
+   lab-matrix-grids side by side need to be smaller than the single-matrix
+   case above to fit a slide, hence the local font-size override. */
+
+.lab-matmul {
+  display: block;
+  width: 100%;
+}
+
+.lab-matmul .lab-matrix-grid { font-size: 1.15em; }
+.mm-matrix .lab-matrix-caption { text-align: center; }
+
+.mm-equation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.mm-op {
+  font-size: 1.6em;
+  color: #8d1b1b;
+}
+
+.mm-step {
+  margin-top: 0.9rem;
+  text-align: center;
+  font-size: 1.35em;
+  font-family: var(--r-code-font, monospace);
+  font-variant-numeric: tabular-nums;
+  min-height: 1.6em;
+}
+
+/* Several A x b_i, stacked - each is its own equation-plus-step block, closer
+   together than the single-equation case above since there is no need to
+   separate an equation from its own arithmetic by much, only one stack of
+   rows from the next. */
+.mm-multi-row + .mm-multi-row { margin-top: 0.7rem; }
+.mm-multi-row .mm-step { margin-top: 0.3rem; }
+
+.mm-a { color: #c0392b; font-weight: 600; }
+.mm-b { color: #1f6fb2; font-weight: 600; }
+
+/* Highlights land on the lab-matrix-grid <span> cells themselves - each is a
+   grid item, so a background paints a clean box even though the tag is a
+   <span>. */
+.mm-hl-a { background: rgba(192, 57, 43, 0.16); border-radius: 4px; }
+.mm-hl-b { background: rgba(31, 111, 178, 0.16); border-radius: 4px; }
+.mm-hl-c { background: rgba(29, 122, 76, 0.22); border-radius: 4px; font-weight: 700; }
+
+.lab-matmul .lab-buttons { justify-content: center; margin-top: 0.8rem; }
+
+/* ---------------------------------------------------- derived-value readout */
+
+.lab-values {
+  display: grid;
+  gap: 0.12rem;
+  font-variant-numeric: tabular-nums;
+  /* keep label and value near each other instead of pinned to opposite edges */
+  max-width: 24em;
+}
+
+.lab-value-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.06em 0;
+}
+
+.lab-value-key { color: #55606b; }
+
+.lab-value-num {
+  font-family: var(--r-code-font, monospace);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* the lines a student should copy down */
+.lab-value-row.is-key { font-weight: 600; }
+.lab-value-row.is-key .lab-value-key,
+.lab-value-row.is-key .lab-value-num { color: #8d1b1b; }
+
+/* Narrow slides (or a projector at 4:3) - stack instead of squeezing. */
+@media (max-aspect-ratio: 5/4) {
+  .lab { grid-template-columns: minmax(0, 1fr); }
+  .lab-stage { min-height: 260px; }
+}
+
+/* reveal's ?print-pdf export sets a `print-pdf` class on <html> and evaluates
+   media queries against the paper box, which would otherwise trip the stacked
+   layout above and push the matrix readout off the page. Targeted by class so
+   the rule is easy to reason about. Must come after the block above to win on
+   equal specificity. */
+html.print-pdf .lab { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+html.print-pdf .lab-stage { height: 400px; min-height: 0; }
+
+/* ------------------------------------------------------------ flipbook --- */
+/* The old deck animated by duplicating a frame once per drawing. Those images
+   are stacked here and stepped through with reveal fragments instead, so seven
+   near-identical slides collapse into one. */
+
+.flipbook {
+  position: relative;
+  width: 100%;
+  padding-top: 100%;   /* the plane-*.svg figures are square */
+}
+
+.flipbook img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  margin: 0;
+}
+
+.reveal .vectors-in-action .column { text-align: center; }
+.reveal .vectors-in-action img { border: 0; box-shadow: none; background: none; }
+.reveal .vectors-in-action p { margin: 0 0 0.3em; }
+
+/* The flipbook fills its column, so the two plain figures must too, otherwise
+   they sit at their natural 209px beside a much larger third panel. */
+.reveal .vectors-in-action .column img { width: 100%; }
+
+/* --------------------------------------------- carried over from the deck */
+
+/* \alert{...} */
+.reveal .alert { color: #8d1b1b; }
+
+/* \structure{...} */
+.reveal .struc { color: #1f4e79; }
+
+/* \fbox{...} around a boxed result */
+.reveal .boxed {
+  display: inline-block;
+  border: 1px solid #8d1b1b;
+  border-radius: 4px;
+  padding: 0.25em 0.6em;
+}
+
+.reveal .credit {
+  font-size: 0.5em;
+  color: #6b747d;
+}

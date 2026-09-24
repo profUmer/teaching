@@ -1,0 +1,116 @@
+---
+title: "Game Math 1"
+subtitle: "Matrices for 2D"
+institute: "Faculty of Media, Creative Arts, and Design, Humber Polytechnic"
+title-slide-attributes:
+  data-background-image: assets/humber-logo.png
+  data-background-size: 110px
+  data-background-position: 96% 92%
+---
+## Matrices
+A matrix is just a table of numbers. Here's an example from the wild:
+
+\begin{pmatrix} 
+3 & 0 & 4 \\ 
+0 & 3 & 5 \\
+0 & 0 & 1
+\end{pmatrix}
+
+
+Why do game developers love them so much? They allow us to do useful things to positions and directions!
+
+
+## Scale Matrix in 2D {.smaller}
+
+You can make vectors bigger, smaller or point the other way with the scale matrix, where $scale_x$ and  $scale_y$ mean the scale along $x$ and $y$:
+
+\begin{pmatrix} 
+scale_x & 0 & 0\\ 
+0 & scale_y & 0\\ 
+0 & 0 & 1 \end{pmatrix}
+
+<div class="lab-mount" data-lab="2d" data-stages="scale" data-kx="1.0" data-ky="1.0" data-reorder="false"></div>
+
+
+## Translate Matrix in 2D {.smaller}
+
+You can move positions around using the translation matrix, where $\Delta x$ and $\Delta y$ mean the change in $x$ and $y$:
+
+\begin{pmatrix} 
+1 & 0 & \Delta x\\ 
+0 & 1 & \Delta y\\ 
+0 & 0 & 1 \end{pmatrix}
+
+<div class="lab-mount" 
+data-lab="2d" 
+data-stages="translate" 
+data-dx="0" 
+data-dy="0" 
+data-reorder="false"></div>
+
+## Rotation Matrix in 2D {.smaller}
+
+You can rotate vectors using the rotation matrix, where $\theta$ is the angle:
+
+\begin{pmatrix} 
+\cos\theta & -\sin\theta & 0 \\ 
+\sin\theta & \cos\theta & 0 \\
+0 & 0 & 1
+\end{pmatrix}
+
+<div class="lab-mount" data-lab="2d" data-stages="rotate" data-theta="0" data-reorder="false"></div>
+
+## Dumptruck Method
+
+:::: {.columns}
+
+::: {.column width="55%"}
+
+[Think of a row vector multiplying a column vector:]{.struc}
+
+$$\begin{pmatrix} 1 & 2 & 3 & 4 \end{pmatrix}
+\times
+\begin{pmatrix} 10\\20\\30\\40 \end{pmatrix}$$
+
+. . .
+
+$$= 1(10) + 2(20) + 3(30) + 4(40)$$
+
+. . .
+
+$$= 300$$
+
+:::
+
+::: {.column width="45%"}
+![](figs/dumptruck.svg){width="100%"}
+:::
+
+::::
+
+
+## Multiplying a Matrix by a Vector {.smaller}
+
+Use the dumptruck method three times for a 3x3 matrix multiplied with a column vector:
+
+<div class="lab-mount" data-lab="matmul" data-a-label="S" data-b-label="v"
+     data-a="4,0,0,0,-3,0,0,0,1" data-b="2,1,1"></div>
+
+## Directions Don't Translate{.smaller}
+
+Remember that $w$ is zero for a direction? That means it won't translate:
+<div class="lab-mount" data-lab="matmul" data-a-label="T"
+     data-a="1,0,3,0,1,-1,0,0,1"
+     data-bs="2,1,1;2,1,0" data-bs-labels="P,D" data-cs-labels="TP,TD"></div>
+
+## Multiplying Matrices {.smaller}
+
+Just keep on dumptrucking for multiplying matrices:
+
+<div class="lab-mount" data-lab="matmul" data-a-label="T" data-b-label="S"></div>
+
+## Order Matters {.smaller}
+Multiply matrices to combine transformations. But be careful, order matters!
+
+<div class="lab-mount" data-lab="2d" data-stages="rotate,scale,translate" data-theta="60" data-kx="1.5" data-ky="1.5" data-dx="3" data-dy="0"></div>
+

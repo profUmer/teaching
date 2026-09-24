@@ -1,0 +1,24 @@
+project:
+  render:
+    # Scoped to just matrices while vectors and motion aren't ready to
+    # publish yet. Switch back to "*.qmd" (or add them explicitly) when
+    # they're ready, then `quarto publish gh-pages` again to add them to
+    # the live site.
+    - matrices.qmd
+
+author: "Umer Noor, PhD"
+
+format:
+  revealjs:
+    theme: [default, assets/humber.scss]
+    css: assets/slides.css
+    include-in-header: assets/head.html
+    footer: "Game Math 1, Umer Noor, PhD"
+    width: 1280
+    height: 720
+    slide-number: c/t
+    progress: true
+    history: true
+    chalkboard: true        # press 'b' to draw on a slide during class
+    preview-links: auto
+    html-math-method: mathjax
