@@ -5,6 +5,17 @@ project:
     # they're ready, then `quarto publish gh-pages` again to add them to
     # the live site.
     - matrices.qmd
+  # Tried listing assets/**, figs/** and index.html here as `resources:` to
+  # get quarto publish to bundle files it can't trace through a recognised
+  # reference (labs.js pulls in its sibling modules via plain JS `import`,
+  # which quarto's dependency scanner never follows) - it had no effect,
+  # verified 2026-09-24. `resources:` may only be honoured for `type:
+  # website`/`type: book` projects, not this bare default project type; did
+  # not chase further. The actual, verified fix after every
+  # `quarto publish gh-pages`: check the site loads (labs mounting, not just
+  # matrices.html returning 200), and if `assets/*.js` 404s or index.html
+  # got overwritten with the rendered deck (both happened the first time),
+  # patch the gh-pages branch directly - see TUTORIAL.md §8.
 
 author: "Umer Noor, PhD"
 

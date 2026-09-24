@@ -472,6 +472,54 @@ To add a held-back deck later: revert `_quarto.yml`'s render list (back to
 `git add` its `.qmd` (and any new `assets`/`figs` it needs), commit, push, then
 `quarto publish gh-pages` again to update the live site.
 
+**Two bugs this scoping triggers, both verified 2026-09-24 — check for them
+after every `quarto publish gh-pages` while the render list is a single
+file.** `quarto publish` only bundles a file if it can trace a reference to
+it through something it recognises — a CSS `link`, an image in markdown, a
+head-include's `script src`. `labs.js` pulls in `draw2d.js`, `lab-core.js`,
+`lab-mount.js`, `transform-lab.js`, `vector-lab.js`, `motion-lab.js` and
+`matmul-lab.js` via plain JS `import` statements, which that scanner never
+follows — so only `labs.js` itself gets published, every one of those 404s,
+and **every lab silently fails to mount** (the import fails before `boot()`
+ever runs — no console-visible `lab-failed`, nothing; the page just looks
+right until you touch a demo). Separately, **`index.html` gets overwritten**
+with a copy of the sole rendered document — this only happens when the
+render list resolves to exactly one file, so it won't show up once more than
+one deck is live. A `project: resources:` declaration in `_quarto.yml`
+naming these files did not fix either problem (untested why — possibly not
+honoured for a bare default project, only `type: website`/`book`) so don't
+rely on it. The fix is direct — a git worktree, so the main checkout is
+never touched:
+
+```powershell
+cd "...\Slides"
+git worktree add C:\gwt gh-pages   # a short path - matrices_files\ nests deep
+                                    # enough to hit Windows' path-length limit
+                                    # from inside OneDrive's own long path
+
+Copy-Item quarto\assets\*.js C:\gwt\assets\ -Force
+Copy-Item quarto\index.html C:\gwt\index.html -Force
+
+cd C:\gwt
+git add assets index.html
+git commit -m "Fix: publish the lab modules labs.js imports, and index.html"
+git push origin gh-pages
+
+cd "...\Slides"
+git worktree remove --force C:\gwt
+```
+
+Then verify with more than a plain `curl` for a 200 — that only proves the
+HTML loaded, not that the labs did:
+
+```powershell
+"labs.js","lab-core.js","draw2d.js","transform-lab.js","vector-lab.js","motion-lab.js","matmul-lab.js" |
+  ForEach-Object { "$_`: " + (Invoke-WebRequest "https://<user>.github.io/<repo>/assets/$_" -UseBasicParsing).StatusCode }
+```
+
+or load the page in a browser and check a demo actually responds to a drag or
+a click, not just that it's visible.
+
 **Quarto Pub** — fewer steps, no git at all, if you only want the link:
 
 ```powershell
