@@ -20,6 +20,7 @@
 
 import { C, runLoop, slider, button, matrixPanel, orderChips, fmt } from './lab-core.js';
 import { makeStage2D, stroke, fillShape, disc, columnVector, css } from './draw2d.js';
+import { workedInverse } from './det-lab.js';
 
 const rad = (d) => (d * Math.PI) / 180;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -72,14 +73,19 @@ const SHAPES = {
 
 const STAGE_LABEL = { rotate: 'Rotate', scale: 'Scale', translate: 'Translate' };
 const STAGE_SYMBOL = { rotate: 'Rotation Matrix', scale: 'Scale Matrix', translate: 'Translate Matrix' };
+const STAGE_LETTER = { rotate: 'R', scale: 'S', translate: 'T' };
 
 export function mountLab2D(el, opts = {}) {
   const {
     stages: stageNames = ['rotate', 'translate'],
     shape = 'house',
     view = 4,
+    cx = 0, cy = 0,
     showMatrix = true,
     allowReorder = true,
+    dots = 'xy',   // which tracked dots to draw: x is (1, 0), y is (0, 1)
+    inverse = false,
+    inverseSteps = false,
     theta = 30, kx = 1.5, ky = 1.5, dx = 2, dy = 1,
   } = opts;
 
@@ -88,16 +94,37 @@ export function mountLab2D(el, opts = {}) {
   stageEl.className = 'lab-stage';
   const panel = document.createElement('div');
   panel.className = 'lab-panel';
-  el.append(stageEl, panel);
+
+  /* With data-inverse-steps the worked inverse needs the whole right-hand
+     side, so the sliders and Play buttons move under a shorter stage. */
+  let side = panel;
+  if (inverseSteps) {
+    el.classList.add('lab-worked');
+    side = document.createElement('div');
+    side.className = 'lab-left';
+    side.append(stageEl);
+    el.append(side, panel);
+  } else {
+    el.append(stageEl, panel);
+  }
 
   /* The stage draws grid and axes; everything below paints on top of them. */
-  const stage = makeStage2D(stageEl, { view });
+  const stage = makeStage2D(stageEl, { view, cx, cy });
   const { ctx } = stage;
 
   const pts = SHAPES[shape] || SHAPES.house;
 
-  /* World units - the transform is already applied when these are stroked. */
-  const W = { ghost: 0.03, outline: 0.05, dot: 0.09, text: 0.28, labelGap: 0.8 };
+  /* World units - the transform is already applied when these are stroked.
+     Sized for the default stage (470px tall, view 4) and rescaled to the
+     stage's actual pixels per unit on every paint, so a zoomed-out view or a
+     shorter stage keeps the outline, dots and labels the same size on screen. */
+  const BASE = { ghost: 0.03, outline: 0.05, dot: 0.09, text: 0.28, labelGap: 0.8 };
+  let W = BASE;
+  function sizeMarks() {
+    const pxPerUnit = stageEl.clientHeight / (2 * view);
+    const z = pxPerUnit > 0 ? (470 / 8) / pxPerUnit : 1;
+    W = Object.fromEntries(Object.entries(BASE).map(([k, v]) => [k, v * z]));
+  }
 
   /* --- animation state ----------------------------------------------------- */
   /* Declared before the controls are built: creating a slider syncs it once,
@@ -108,6 +135,7 @@ export function mountLab2D(el, opts = {}) {
   let dirty = true;
   let mounted = false;   // true once the controls and matrix panel exist
   let display = null;    // the transformed shape and its basis vectors
+  let inverted = false;  // inverse mode: undo the product, stage by stage
 
   /* Redraws straight away rather than waiting on the render loop, so moving a
      slider updates the matrix on the same tick. The loop only runs while the
@@ -134,26 +162,41 @@ export function mountLab2D(el, opts = {}) {
   const sliders = {};
   const controls = document.createElement('div');
   controls.className = 'lab-controls';
-  panel.appendChild(controls);
+  side.appendChild(controls);
+
+  /* The worked inverse keeps the house above the x-axis, so the stage only
+     has to show the top half: rotations of 0-90 degrees, positive scales
+     (never 0, so there is always an inverse) and an upward Delta y. */
+  const R = inverseSteps
+    ? { theta: [0, 90], k: [0.5, 2], dx: [-3, 3], dy: [0, 3] }
+    : { theta: [-360, 360], k: [-3, 3], dx: [-4, 4], dy: [-4, 4] };
 
   if (stageNames.includes('rotate')) {
     sliders.theta = slider(controls,
-      { label: '&theta;', min: -360, max: 360, step: 1, value: theta, format: (v) => `${v}°` },
+      { label: '&theta;', min: R.theta[0], max: R.theta[1], step: 1, value: theta, format: (v) => `${v}°` },
       () => invalidate());
   }
   if (stageNames.includes('scale')) {
-    sliders.kx = slider(controls, { label: 'scale<sub>x</sub>', min: -3, max: 3, step: 0.1, value: kx }, () => invalidate());
-    sliders.ky = slider(controls, { label: 'scale<sub>y</sub>', min: -3, max: 3, step: 0.1, value: ky }, () => invalidate());
+    sliders.kx = slider(controls, { label: 'scale<sub>x</sub>', min: R.k[0], max: R.k[1], step: 0.1, value: kx }, () => invalidate());
+    sliders.ky = slider(controls, { label: 'scale<sub>y</sub>', min: R.k[0], max: R.k[1], step: 0.1, value: ky }, () => invalidate());
   }
   if (stageNames.includes('translate')) {
-    sliders.dx = slider(controls, { label: '&Delta;x', min: -4, max: 4, step: 0.1, value: dx }, () => invalidate());
-    sliders.dy = slider(controls, { label: '&Delta;y', min: -4, max: 4, step: 0.1, value: dy }, () => invalidate());
+    sliders.dx = slider(controls, { label: '&Delta;x', min: R.dx[0], max: R.dx[1], step: 0.1, value: dx }, () => invalidate());
+    sliders.dy = slider(controls, { label: '&Delta;y', min: R.dy[0], max: R.dy[1], step: 0.1, value: dy }, () => invalidate());
   }
 
   const buttons = document.createElement('div');
   buttons.className = 'lab-buttons';
-  panel.appendChild(buttons);
-  button(buttons, 'Play', () => play());
+  side.appendChild(buttons);
+  /* With data-inverse, Play splits in two: the product M forward from the
+     original shape, and M^-1 back from where M left it. Each sets the mode
+     and plays, so clicking one after the other shows the round trip. */
+  if (inverse) {
+    button(buttons, `Play ${productName()}`, () => { inverted = false; invalidate(); play(); });
+    button(buttons, `Play ${inverseName()}`, () => { inverted = true; invalidate(); play(); });
+  } else {
+    button(buttons, 'Play', () => play());
+  }
 
   // Chips sit directly above the matrix grid, so dragging them rearranges the
   // same equation the matrix is the answer to; matrixPanel's own caption is
@@ -167,7 +210,10 @@ export function mountLab2D(el, opts = {}) {
     });
   }
 
-  const mp = showMatrix ? matrixPanel(panel) : null;
+  // With data-inverse-steps the matrix readout becomes the worked inverse,
+  // a step at a time; otherwise it is the plain matrix readout.
+  const steps = inverseSteps ? workedInverse(panel, { describe: productName, describeInverse: inverseName }) : null;
+  const mp = showMatrix && !steps ? matrixPanel(panel) : null;
 
   mounted = true;
 
@@ -183,6 +229,22 @@ export function mountLab2D(el, opts = {}) {
     }
   }
 
+  /* A stage's inverse, partially applied the same way. Scale has none when a
+     factor is 0 - the shape has been flattened and there is no undoing it -
+     so that returns null and the caller says so instead of dividing by 0. */
+  function inverseStageMatrix(name, u = 1) {
+    switch (name) {
+      case 'rotate':    return M3.rotation(-rad(sliders.theta.get()) * u);
+      case 'scale': {
+        const kx = sliders.kx.get(), ky = sliders.ky.get();
+        if (Math.abs(kx) < 1e-9 || Math.abs(ky) < 1e-9) return null;
+        return M3.scale(1 + (1 / kx - 1) * u, 1 + (1 / ky - 1) * u);
+      }
+      case 'translate': return M3.translation(-sliders.dx.get() * u, -sliders.dy.get() * u);
+      default:          return M3.identity();
+    }
+  }
+
   // order is application order, so the composed matrix multiplies right-to-left
   function composed(progress = order.length) {
     let m = M3.identity();
@@ -192,6 +254,34 @@ export function mountLab2D(el, opts = {}) {
       m = M3.mul(stageMatrix(order[i], u), m);
     }
     return m;
+  }
+
+  /* (A·B)^-1 = B^-1·A^-1: the inverse undoes the *last* stage first, so its
+     application order is `order` reversed. Null when there is no inverse. */
+  function composedInverse(progress = order.length) {
+    let m = M3.identity();
+    const undo = order.slice().reverse();
+    for (let i = 0; i < undo.length; i++) {
+      const u = clamp(progress - i, 0, 1);
+      const s = inverseStageMatrix(undo[i], Math.max(u, 0));
+      if (!s) return null;
+      if (u <= 0) continue;
+      m = M3.mul(s, m);
+    }
+    return m;
+  }
+
+  // The product as the inverse slide writes it, e.g. "T*S"
+  function productName() {
+    return multOrder.map((s) => STAGE_LETTER[s]).join('*');
+  }
+
+  /* "(T*S)⁻¹", or "Rᵀ" with data-inverse="transpose" - for a rotation the
+     transpose *is* the inverse, which is the point of the Transpose slide.
+     A single letter needs no brackets. */
+  function inverseName() {
+    const p = multOrder.length > 1 ? `(${productName()})` : productName();
+    return p + (inverse === 'transpose' ? 'ᵀ' : '⁻¹');
   }
 
   // Same text the chips spell out when they're on screen; used for the static
@@ -204,15 +294,28 @@ export function mountLab2D(el, opts = {}) {
   /* --- animation ----------------------------------------------------------- */
   /* Immediate mode, as in vector-lab.js: rebuild only recomputes, paint redraws
      the whole stage. */
+  /* Inverse mode starts from where the forward product left the shape, so
+     the ghost and the starting points are M applied to the originals. */
   function rebuild() {
-    const m = composed(progress);
+    const fwd = composed();
+    const start = inverted ? (p) => M3.apply(fwd, p) : (p) => p;
+    const m = inverted ? composedInverse(progress) || M3.identity() : composed(progress);
     display = {
-      moved: pts.map((p) => M3.apply(m, p)),
-      o:  M3.apply(m, [0, 0]),
-      ex: M3.apply(m, [1, 0]),
-      ey: M3.apply(m, [0, 1]),
+      ghost: pts.map(start),
+      moved: pts.map((p) => M3.apply(m, start(p))),
+      o:  M3.apply(m, start([0, 0])),
+      ex: M3.apply(m, start([1, 0])),
+      ey: M3.apply(m, start([0, 1])),
     };
-    if (mp) mp.update(composed(), showOrder ? '' : symbolLabel());
+    if (steps) steps.update(fwd);
+    if (!mp) return;
+    if (!inverted) {
+      mp.update(fwd, inverse ? `${productName()}  =` : showOrder ? '' : symbolLabel());
+      return;
+    }
+    const full = composedInverse();
+    if (full) mp.update(full, `${inverseName()}  =`);
+    else mp.update(fwd.map(() => NaN), `${inverseName()} does not exist: a scale is 0`);
   }
 
   // Which way a label should run so it reads away from the origin instead of
@@ -244,11 +347,12 @@ export function mountLab2D(el, opts = {}) {
 
   /* Back to front: ghost, fill, outline, then the tracked vertices on top. */
   function paint() {
+    sizeMarks();
     stage.begin();
     if (!display) return;
 
     ctx.strokeStyle = css(C.ghost);
-    stroke(ctx, pts, W.ghost, true);            // the shape before the transform
+    stroke(ctx, display.ghost, W.ghost, true);  // the shape before the transform
 
     ctx.globalAlpha = 0.16;
     ctx.fillStyle = css(C.shapeFill);
@@ -258,8 +362,8 @@ export function mountLab2D(el, opts = {}) {
     ctx.strokeStyle = css(C.shape);
     stroke(ctx, display.moved, W.outline, true);
 
-    vertexMark(display.ex, C.basisX, rad(-90));
-    vertexMark(display.ey, C.basisY, rad(90));
+    if (dots.includes('x')) vertexMark(display.ex, C.basisX, rad(-90));
+    if (dots.includes('y')) vertexMark(display.ey, C.basisY, rad(90));
   }
 
   function frame() {

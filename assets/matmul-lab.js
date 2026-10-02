@@ -117,7 +117,7 @@ function mountSingle(el, opts) {
     const terms = [];
     for (let k = 0; k < 3; k++) {
       const av = a[row * 3 + k], bv = b[k * bCols + col];
-      terms.push(`<span class="mm-a">${paren(av)}</span>&middot;<span class="mm-b">${paren(bv)}</span>`);
+      terms.push(`<span class="mm-a">${paren(av)}</span>&times;<span class="mm-b">${paren(bv)}</span>`);
     }
     stepEl.innerHTML = `${terms.join(' + ')} = <strong>${fmt(dot(row, col))}</strong>`;
   }
@@ -215,7 +215,7 @@ function mountMulti(el, opts) {
 
       const terms = [];
       for (let k = 0; k < 3; k++) {
-        terms.push(`<span class="mm-a">${paren(a[step * 3 + k])}</span>&middot;<span class="mm-b">${paren(r.b[k])}</span>`);
+        terms.push(`<span class="mm-a">${paren(a[step * 3 + k])}</span>&times;<span class="mm-b">${paren(r.b[k])}</span>`);
       }
       r.stepEl.innerHTML = `${terms.join(' + ')} = <strong>${fmt(dot(r, step))}</strong>`;
     }
@@ -269,7 +269,7 @@ function matrixBlock(parent, label, cols) {
   return { cells };
 }
 
-// A negative factor reads as "+ -1·1" otherwise; the deck's own algebra
+// A negative factor reads as "+ -1×1" otherwise; the deck's own algebra
 // slides (e.g. "1(4)+(-3)(-1)+5(2)") wrap negatives in parens instead.
 function paren(v) {
   const s = fmt(v);

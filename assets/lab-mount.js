@@ -30,8 +30,9 @@ import { makeStage2D, paint } from './draw2d.js';
  *   kind    a css hook: .lab-vector / .lab-motion, alongside .lab-<mode>
  *   view    half-height of the stage in world units; cx/cy centre it
  *   step    grid spacing, dp decimal places in the readout
+ *   grid    false for a bare diagram with no grid or axes
  */
-export function mountLab(el, { modes, mode, kind, view, cx = 0, cy = 0, step = 1, dp = 2, ...rest }) {
+export function mountLab(el, { modes, mode, kind, view, cx = 0, cy = 0, step = 1, dp = 2, grid = true, ...rest }) {
   el.classList.add('lab', `lab-${kind}`, `lab-${mode}`);
 
   const stageEl = document.createElement('div');
@@ -48,7 +49,7 @@ export function mountLab(el, { modes, mode, kind, view, cx = 0, cy = 0, step = 1
     dash: 0.16 * s, handle: 0.11 * s, text: 0.34 * s,
   };
 
-  const stage = makeStage2D(stageEl, { view, cx, cy, step });
+  const stage = makeStage2D(stageEl, { view, cx, cy, step, grid });
   const { controls, vp, buttons } = makePanel(panel);
 
   // The mode may add sliders during construction, and a slider's oninput needs
