@@ -335,6 +335,68 @@
 /* the blocked-out row and column of the element being picked */
 .det-out { color: #c4c9ce; background: rgba(0, 0, 0, 0.05); border-radius: 4px; text-decoration: line-through; }
 
+/* ------------------------------------------------ basis-vector candy crush */
+/* blade-lab.js: one centred column like det, the indices as coloured tiles
+   sitting low beside the e, as its subscript. 0 purple, and 1/2/3 the
+   red/green/blue of x/y/z. */
+.lab-blades { display: block; width: 100%; font-size: 1.3em; }
+.bl-picks { display: flex; justify-content: center; align-items: center; gap: 0.05em; }
+/* the e the typed indices belong to; the box sits low, as its subscript */
+.bl-own-e { font-family: var(--r-code-font, monospace); font-size: 1.6em; font-style: italic; }
+.bl-picks .bl-own { transform: translateY(0.45em); }
+.bl-own-wrap { position: relative; display: inline-flex; align-items: center; gap: 0.05em; }
+.bl-meaning {
+  position: absolute; left: 100%; margin-left: 0.6em; white-space: nowrap;
+  font-family: var(--r-code-font, monospace); font-size: 1.3em; font-style: italic; color: #55606b;
+}
+.bl-own {
+  font: inherit; font-family: var(--r-code-font, monospace); font-size: 0.9em; letter-spacing: 0.15em;
+  width: 6.5em; padding: 0.2em 0.3em; text-align: left; border: 1px solid #c4c9ce; border-radius: 4px;
+}
+
+.bl-board {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.15rem; min-height: 4.6em; margin-top: 0.6rem;
+  font-family: var(--r-code-font, monospace);
+}
+.bl-eq { font-size: 2.6em; margin-right: 0.1em; color: #1c1f23; }
+/* always one character wide, so a minus coming and going does not shift the tiles */
+.bl-coef { display: inline-block; width: 0.65em; text-align: center; font-size: 2.6em; font-weight: 700; color: #1c1f23; }
+.bl-e { font-size: 2.6em; font-style: italic; margin-right: 0.05em; }
+/* dropped below the e's line, the way a subscript sits */
+.bl-sub { display: inline-flex; align-items: center; gap: 0.25rem; transform: translateY(0.9em); }
+.bl-tile {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.8em; height: 1.8em; font-size: 1.3em; font-weight: 700; color: #fff;
+  border-radius: 0.45em; box-shadow: inset 0 -0.18em 0 rgba(0, 0, 0, 0.22);
+}
+.bl-i0 { background: #6b4fa0; }
+.bl-i1 { background: #c0392b; }
+.bl-i2 { background: #1d7a4c; }
+.bl-i3 { background: #1f6fb2; }
+
+.bl-gap {
+  font: inherit; font-size: 0.9em; width: 1.7em; height: 1.7em; padding: 0;
+  border: 1px solid #c4c9ce; border-radius: 50%; background: #fff; color: #55606b; cursor: pointer;
+}
+.bl-gap:hover { border-color: #8d1b1b; color: #8d1b1b; }
+.bl-gap-pop { border-color: #d4a017; background: #fff4cf; color: #8a6400; animation: bl-glow 0.9s ease-in-out infinite alternate; }
+
+.bl-swapped { animation: bl-bounce 0.35s ease-out; }
+.bl-flip { animation: bl-flash 0.5s ease-out; }
+.bl-pop { animation: bl-pop 0.45s ease-in forwards; }
+
+@keyframes bl-bounce { 0% { transform: translateY(-0.35em) scale(1.08); } 100% { transform: none; } }
+@keyframes bl-flash { 0% { color: #c0392b; transform: scale(1.3); } 100% { color: inherit; transform: none; } }
+@keyframes bl-glow { from { box-shadow: 0 0 0 0 rgba(212, 160, 23, 0.0); } to { box-shadow: 0 0 0 0.25em rgba(212, 160, 23, 0.35); } }
+/* the matched pair bursts, then gives its room back */
+@keyframes bl-pop {
+  0%   { transform: scale(1); opacity: 1; }
+  40%  { transform: scale(1.3) rotate(8deg); opacity: 1; }
+  100% { transform: scale(0); opacity: 0; width: 0; margin: 0; font-size: 0; }
+}
+
+
 /* ---------------------------------------------------- derived-value readout */
 
 .lab-values {

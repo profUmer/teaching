@@ -11,7 +11,8 @@
  * (kinematics), matmul-lab.js (step-by-step 3x3 multiplication) or
  * det-lab.js (a 3x3 determinant, one first-row element at a time, and the
  * cofactor matrix, one cell at a time, and its transpose, one row at a time)
- * or quat-lab.js (two reflections making a rotation, for the quaternion decks). Keeping
+ * or quat-lab.js (two reflections making a rotation, for the quaternion decks)
+ * or blade-lab.js (simplifying a product of basis vectors like e01123). Keeping
  * one entry point means one scan of the document and no chance of two
  * modules both claiming the same div.
  */
@@ -23,6 +24,7 @@ import { mountMotionLab } from './motion-lab.js';
 import { mountMatmulLab } from './matmul-lab.js';
 import { mountDetLab, mountCofactorLab, mountCofactorTransposeLab } from './det-lab.js';
 import { mountQuatLab } from './quat-lab.js';
+import { mountBladeLab } from './blade-lab.js';
 
 const VECTOR_MODES = new Set(['polar', 'add', 'dot', 'reflect']);
 const MOTION_MODES = new Set(['motion', 'accel']);
@@ -54,6 +56,7 @@ function optionsFrom(el) {
   if (el.dataset.bLabel) opts.bLabel = el.dataset.bLabel;
   if (el.dataset.cLabel) opts.cLabel = el.dataset.cLabel;
   if (el.dataset.order) opts.order = el.dataset.order;
+  if (el.dataset.indices) opts.indices = el.dataset.indices;
   // Several vectors stepped in lock-step (matmul-lab.js's mountMulti):
   // data-bs="2,1,1;2,1,0" is two 3x1 columns, semicolon between them;
   // data-bs-labels / data-cs-labels pair up with them by position.
@@ -85,6 +88,7 @@ function boot() {
       if (VECTOR_MODES.has(kind)) mountVectorLab(el, { ...opts, mode: kind });
       else if (MOTION_MODES.has(kind)) mountMotionLab(el, { ...opts, mode: kind });
       else if (QUAT_MODES.has(kind)) mountQuatLab(el, { ...opts, mode: kind });
+      else if (kind === 'blades') mountBladeLab(el, opts);
       else if (kind === 'matmul') mountMatmulLab(el, opts);
       else if (kind === 'det') mountDetLab(el, opts);
       else if (kind === 'cofactor') mountCofactorLab(el, opts);

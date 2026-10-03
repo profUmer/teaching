@@ -170,9 +170,26 @@ Umer Noor, PhD
 <section id="why-translation2" class="slide level2">
 <h2>Why translation/2?</h2>
 <p>The mysterious “half” also pops up with translations too</p>
-<p><span class="math display">\[ \text{Dual Quaternion Translator} = 1 - \frac{\Delta x}{2} e01 - \frac{\Delta y}{2} e02 - \frac{\Delta z}{2} e03 \]</span></p>
+<p><span class="math display">\[ \text{Dual Quaternion Translator} = 1 - \frac{\Delta x}{2} e_{01} - \frac{\Delta y}{2} e_{02} - \frac{\Delta z}{2} e_{03} \]</span></p>
 <p>Makes sense if you think of it as a reflection across two parallel planes</p>
 <div class="lab-mount lab-short" data-lab="parallel" data-d="0.5">
+
+</div>
+</section>
+<section id="how-to-use-dual-quaternions" class="slide level2">
+<h2>How to use dual quaternions?</h2>
+<p>Combine a rotation <span class="math inline">\(R\)</span> then a translation <span class="math inline">\(T\)</span> by multipying them in the correct order:</p>
+<p><span class="math display">\[TR\]</span></p>
+<p>Rotate then translate a point <span class="math inline">\(P\)</span> by using the sandwich:</p>
+<p><span class="math display">\[TR(P)(TR)^{-1}\]</span></p>
+<p>But how to multiply these things?</p>
+</section>
+<section id="lets-play-dq-candy-crush" class="slide level2">
+<h2>Let’s play DQ Candy Crush!</h2>
+<p>Use the rules: <span class="math display">\[e_1^2 = e_2^2 = e_3^2 = 1\]</span></p>
+<p><span class="math display">\[e_0^2 = 0\]</span></p>
+<p>You can swap the order of multiplication by flipping the sign.</p>
+<div class="lab-mount" data-lab="blades" data-indices="012123">
 
 </div>
 
