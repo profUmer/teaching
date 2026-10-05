@@ -130,22 +130,21 @@
       margin-right: 0; 
     }
   </style>
+  <!-- Diagnostics overlay, inert unless the URL has ?debug. A classic script, and
+       before labs.js on purpose, so it can report labs.js failing to load. -->
+  <script src="./assets/debug.js"></script>
   <!-- The one script the decks load. It scans for .lab-mount divs and mounts the
-
        demos; everything it needs is in assets/, with no third-party dependency
-
        and nothing fetched from the network. -->
-
   <script type="module" src="./assets/labs.js"></script>
-
 </head>
 <body class="quarto-light">
   <div class="reveal">
     <div class="slides">
 
-<section id="title-slide" data-background-image="assets/humber-logo.png" data-background-position="96% 92%" data-background-size="110px" class="quarto-title-block center">
+<section id="title-slide" class="quarto-title-block center">
   <h1 class="title">Game Math 1</h1>
-  <p class="subtitle">Matrices for 2D</p>
+  <p class="subtitle">Matrices in 2D</p>
 
 <div class="quarto-title-authors">
 <div class="quarto-title-author">
@@ -158,6 +157,7 @@ Umer Noor, PhD
     </div>
 </div>
 
+  <p class="date">Demos built using Claude Code</p>
 </section>
 <section id="matrices" class="slide level2">
 <h2>Matrices</h2>
