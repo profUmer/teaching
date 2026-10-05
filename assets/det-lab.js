@@ -214,39 +214,63 @@ export function mountCofactorTransposeLab(el, opts = {}) {
 
 /* The whole of A^-1 = 1/determinant(A) x cofactor(A)^T, one step per Next,
    in the same style as the three labs above, for transform-lab.js's
-   data-inverse-steps panel. Two matrix slots and a working line:
+   data-inverse-steps panel. Above the line, A and each result, moved up on
+   the Next after it is finished; below it, two matrix slots and a working
+   line. Each part opens on its name alone, "determinant(A) =", or its name
+   and an empty matrix, "cofactor(A) = ( )", where it will fill in. Once the
+   cofactors are above the line they are not written out again below it:
+   the transpose and A^-1 pick out the cells they use up there instead.
 
-     0       A, and what it is the product of
-     1-4     determinant(A), a first-row term at a time, then its value
-     5-13    cofactor(A), a cell at a time
-     14-16   cofactor(A)^T, a row into a column at a time
-     17      A^-1 = 1/determinant(A) x cofactor(A)^T
+     0-4     determinant(A): its name, a first-row term at a time, its value
+     5-14    cofactor(A): its name, then a cell at a time
+     15-18   cofactor(A)^T: its name, then a row into a column at a time
+     19-28   A^-1: its name, then a cell of cofactor(A)^T over the determinant
+     29      A^-1 on its own, the working cleared away
 
    update(m) swaps in a new A (the sliders moved) and redraws the same step. */
 const TRANSPOSE = [0, 3, 6, 1, 4, 7, 2, 5, 8];
-const STEPS = { det: 1, cof: 5, tr: 14, last: 17 };
+const STEPS = { det: 0, cof: 5, tr: 15, div: 19, last: 29 };   // where each part opens
 
-export function workedInverse(parent, { aLabel = 'A', describe = () => '', describeInverse = () => '' } = {}) {
+export function workedInverse(parent, { aLabel = 'A' } = {}) {
   const wrap = document.createElement('div');
   wrap.className = 'det-worked';
   parent.appendChild(wrap);
 
-  // The answer, always on show above the working: "T*R*S = ( )  (T*R*S)^-1 = ( )".
+  // What is known so far, above the line: "A = ( )  cofactor(A) = ( )", with
+  // "determinant(A) = 2" under A, the cofactors swapped for their transpose
+  // once done. The determinant's line is always there, blank until it is
+  // known, so the buttons below do not jump when it appears.
   const summary = document.createElement('div');
   summary.className = 'mm-equation det-summary';
   wrap.appendChild(summary);
-  const sumNameM = name(summary, '');
-  const sumM = grid(summary, 3, Array(9).fill(' '));
+  const sumA = document.createElement('div');
+  sumA.className = 'det-col';
+  summary.appendChild(sumA);
+  const sumARow = document.createElement('div');
+  sumARow.className = 'mm-equation';
+  sumA.appendChild(sumARow);
+  name(sumARow, `${aLabel} =`);
+  const sumM = grid(sumARow, 3, Array(9).fill('\u00a0'));
+  const sumDet = name(sumA, '\u00a0');
   const sumGap = document.createElement('span');
   sumGap.className = 'det-gap';
   summary.appendChild(sumGap);
-  const sumNameInv = name(summary, '');
-  const sumInv = grid(summary, 3, Array(9).fill(' '));
+  // built the same way as A's column, with a blank line under it, so the
+  // two matrices line up
+  const sumCRow = document.createElement('div');
+  sumCRow.className = 'det-col';
+  summary.appendChild(sumCRow);
+  const sumCEqn = document.createElement('div');
+  sumCEqn.className = 'mm-equation';
+  sumCRow.appendChild(sumCEqn);
+  const sumNameC = name(sumCEqn, '');
+  const sumC = grid(sumCEqn, 3, Array(9).fill('\u00a0'));
+  name(sumCRow, '\u00a0');
 
   const eqn = document.createElement('div');
   eqn.className = 'mm-equation';
   wrap.appendChild(eqn);
-  const blank = Array(9).fill(' ');
+  const blank = Array(9).fill('\u00a0');
   const nameL = name(eqn, '');
   const L = grid(eqn, 3, blank);
   const gap = document.createElement('span');
@@ -267,13 +291,15 @@ export function workedInverse(parent, { aLabel = 'A', describe = () => '', descr
   let step = 0;
 
   const hl = (cls, html) => `<span class="${cls}">${html}</span>`;
+  // a stacked fraction, numerator over a rule over denominator, as \frac{}{} writes it
+  const frac = (num, den) => `<span class="det-frac"><span>${num}</span><span>${den}</span></span>`;
   const signOf = (sign) => (sign < 0 ? '−' : '+');
 
   function fill(slot, label, values) {
     slot.name.textContent = label;
     slot.cells.forEach((cell, i) => {
       cell.classList.remove('mm-hl-a', 'mm-hl-b', 'mm-hl-c', 'det-out');
-      cell.textContent = values[i] === undefined ? ' ' : fmt(values[i]);
+      cell.textContent = values[i] === undefined ? '\u00a0' : fmt(values[i]);
     });
   }
 
@@ -283,24 +309,41 @@ export function workedInverse(parent, { aLabel = 'A', describe = () => '', descr
     const det = m[0] * cv[0] + m[1] * cv[1] + m[2] * cv[2];   // along the first row
     const cT = TRANSPOSE.map((i) => cv[i]);
     const A = `${aLabel}`;
-    const inv = Math.abs(det) < 1e-9 ? Array(9).fill(NaN) : cT.map((v) => v / det);
-    fill({ name: sumNameM, cells: sumM.cells }, `${describe()} =`, m);
-    fill({ name: sumNameInv, cells: sumInv.cells }, `${describeInverse()} =`, inv);
+    const singular = Math.abs(det) < 1e-9;
+
+    // each part's first step is its name and an empty matrix
+    const start = step >= STEPS.div ? STEPS.div : step >= STEPS.tr ? STEPS.tr : step >= STEPS.cof ? STEPS.cof : STEPS.det;
+    const k = step - start - 1;   // -1 = the part has just opened
+    const dividing = step >= STEPS.div && k >= 0 && k < 9 && !singular;
+
+    // above the line: A, then each result once the next part has opened.
+    // While A^-1 is worked, the determinant (red) and the cell of the
+    // transpose (blue) being divided are picked out up here.
+    sumM.cells.forEach((cell, i) => { cell.textContent = fmt(m[i]); });
+    sumDet.innerHTML = step >= STEPS.cof
+      ? `determinant(${A}) = ${dividing ? hl('mm-hl-a', fmt(det)) : fmt(det)}`
+      : '&nbsp;';
+    const sumCof = step >= STEPS.tr;
+    if (sumCof) {
+      const tr = step >= STEPS.div;
+      fill({ name: sumNameC, cells: sumC.cells }, tr ? `cofactor(${A})ᵀ =` : `cofactor(${A}) =`, tr ? cT : cv);
+    }
+    for (const n of [sumGap, sumCRow]) n.style.display = sumCof ? '' : 'none';
+
     const left = { name: nameL, cells: L.cells };
     const right = { name: nameR, cells: R.cells };
+    let showLeft = true;      // false: hidden, but keeping its space
+    let leftGone = false;     // true: not there at all, the result centred
     let showRight = true;
     let html = '&nbsp;';
 
-    if (step < STEPS.det) {
+    if (step < STEPS.cof) {
+      // determinant: its name, a first-row term per step, each bringing the
+      // next sign, then its value (k = 0..2 a term, 3 the value)
       fill(left, `${A} =`, m);
       showRight = false;
-      html = `${A} = ${describe()}`;
-    } else if (step < STEPS.cof) {
-      // determinant: a first-row term per step, each bringing the next sign
-      const k = step - STEPS.det;   // 0..2 = term, 3 = the value
-      fill(left, `${A} =`, m);
-      showRight = false;
-      blockOut(L.cells, k < 3 ? 0 : -1, k);
+      showLeft = k >= 0;
+      blockOut(L.cells, k >= 0 && k < 3 ? 0 : -1, k);
       const terms = [0, 1, 2].slice(0, Math.min(k + 1, 3)).map((col) => {
         const now = col === k;
         const next = col < 2 ? ` ${signOf(col === 0 ? -1 : 1)}` : '';
@@ -309,35 +352,47 @@ export function workedInverse(parent, { aLabel = 'A', describe = () => '', descr
       });
       html = `determinant(${A}) =${terms.join('')}` + (k === 3 ? ` = ${hl('mm-hl-c', fmt(det))}` : '');
     } else if (step < STEPS.tr) {
-      // cofactor: a cell per step, its sign in place of the element
-      const k = step - STEPS.cof;
-      const c = cof[k];
+      // cofactor: opens on "cofactor(A) = ( )", then a cell per step, its
+      // sign in place of the element
       fill(left, `${A} =`, m);
-      blockOut(L.cells, c.row, c.col);
-      L.cells[k].textContent = signOf(c.sign);
       fill(right, `cofactor(${A}) =`, cv.slice(0, k + 1));
-      R.cells[k].classList.add('mm-hl-c');
-      html = `${hl('mm-hl-a', signOf(c.sign))}${hl('mm-hl-b', `(${c.cross})`)} = ${hl('mm-hl-c', fmt(c.value))}`;
-    } else if (step < STEPS.last) {
-      // transpose: a row of the cofactors becomes a column
-      const k = step - STEPS.tr;
-      fill(left, `cofactor(${A}) =`, cv);
-      L.cells.forEach((cell, i) => cell.classList.toggle('mm-hl-b', Math.floor(i / 3) === k));
+      showLeft = k >= 0;
+      if (k >= 0) {
+        const c = cof[k];
+        blockOut(L.cells, c.row, c.col);
+        L.cells[k].textContent = signOf(c.sign);
+        R.cells[k].classList.add('mm-hl-c');
+        html = `${hl('mm-hl-a', signOf(c.sign))}${hl('mm-hl-b', `(${c.cross})`)} = ${hl('mm-hl-c', fmt(c.value))}`;
+      }
+    } else if (step < STEPS.div) {
+      // transpose: opens on "cofactor(A)^T = ( )", then a row of the
+      // cofactors above the line becomes a column here, no words needed
+      leftGone = true;
       fill(right, `cofactor(${A})ᵀ =`, cT.map((v, i) => (i % 3 <= k ? v : undefined)));
+      sumC.cells.forEach((cell, i) => cell.classList.toggle('mm-hl-b', Math.floor(i / 3) === k));
       R.cells.forEach((cell, i) => cell.classList.toggle('mm-hl-c', i % 3 === k));
-      html = `row ${k + 1} of cofactor(${A}) becomes column ${k + 1}`;
+    } else if (singular) {
+      leftGone = true;
+      fill(right, `${A}⁻¹ =`, k >= 0 ? Array(9).fill(NaN) : []);
+      if (k >= 0) html = `determinant(${A}) = 0, so ${A} has no inverse`;
     } else {
-      // the formula: every cell of the transpose divided by the determinant
-      fill(left, `cofactor(${A})ᵀ =`, cT);
-      const singular = Math.abs(det) < 1e-9;
-      fill(right, `${A}⁻¹ =`, singular ? Array(9).fill(NaN) : cT.map((v) => v / det));
-      if (!singular) R.cells.forEach((cell) => cell.classList.add('mm-hl-c'));
-      html = singular
-        ? `determinant(${A}) = 0, so ${A} has no inverse`
-        : `${A}⁻¹ = 1/determinant(${A}) × cofactor(${A})ᵀ = 1/${hl('mm-hl-c', fmt(det))} × cofactor(${A})ᵀ`;
+      // A^-1: opens on "A^-1 = ( )", then a cell of the transpose above the
+      // line per step, divided by the determinant; the last Next clears the
+      // working away and leaves A^-1 on its own
+      leftGone = true;
+      fill(right, `${A}⁻¹ =`, cT.slice(0, k + 1).map((v) => v / det));
+      if (dividing) {
+        sumC.cells[k].classList.add('mm-hl-b');
+        R.cells[k].classList.add('mm-hl-c');
+        html = `${frac(hl('mm-hl-b', fmt(cT[k])), hl('mm-hl-a', fmt(det)))} = ${hl('mm-hl-c', fmt(cT[k] / det))}`;
+      }
     }
 
     for (const n of [gap, nameR, R.wrap]) n.style.display = showRight ? '' : 'none';
+    for (const n of [nameL, L.wrap, gap]) if (leftGone) n.style.display = 'none';
+    for (const n of [nameL, L.wrap]) if (!leftGone) n.style.display = '';
+    // hidden rather than removed, so the working line and buttons stay put
+    for (const n of [nameL, L.wrap]) n.style.visibility = showLeft ? '' : 'hidden';
     formula.innerHTML = html;
   }
 

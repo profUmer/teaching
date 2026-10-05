@@ -212,7 +212,7 @@ export function mountLab2D(el, opts = {}) {
 
   // With data-inverse-steps the matrix readout becomes the worked inverse,
   // a step at a time; otherwise it is the plain matrix readout.
-  const steps = inverseSteps ? workedInverse(panel, { describe: productName, describeInverse: inverseName }) : null;
+  const steps = inverseSteps ? workedInverse(panel) : null;
   const mp = showMatrix && !steps ? matrixPanel(panel) : null;
 
   mounted = true;

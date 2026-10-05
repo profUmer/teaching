@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html lang="en"><head>
-<script src="dualQuaternions_files/libs/clipboard/clipboard.min.js"></script>
-<script src="dualQuaternions_files/libs/quarto-html/tabby.min.js"></script>
-<script src="dualQuaternions_files/libs/quarto-html/popper.min.js"></script>
-<script src="dualQuaternions_files/libs/quarto-html/tippy.umd.min.js"></script>
-<link href="dualQuaternions_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="dualQuaternions_files/libs/quarto-html/light-border.css" rel="stylesheet">
-<link href="dualQuaternions_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+<script src="matrixInverse_files/libs/clipboard/clipboard.min.js"></script>
+<script src="matrixInverse_files/libs/quarto-html/tabby.min.js"></script>
+<script src="matrixInverse_files/libs/quarto-html/popper.min.js"></script>
+<script src="matrixInverse_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="matrixInverse_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="matrixInverse_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="matrixInverse_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.10.18">
 
   <meta name="author" content="Umer Noor, PhD">
-  <title>Game Math 2</title>
+  <title>Game Math 1</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
-  <link rel="stylesheet" href="dualQuaternions_files/libs/revealjs/dist/reset.css">
-  <link rel="stylesheet" href="dualQuaternions_files/libs/revealjs/dist/reveal.css">
+  <link rel="stylesheet" href="matrixInverse_files/libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="matrixInverse_files/libs/revealjs/dist/reveal.css">
   <style>
     /* Default styles provided by pandoc.
     ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -35,14 +35,14 @@
       vertical-align: middle;
     }
   </style>
-  <link rel="stylesheet" href="dualQuaternions_files/libs/revealjs/dist/theme/quarto-dc4d05d0bc4095dda8b86720e93561e2.css">
+  <link rel="stylesheet" href="matrixInverse_files/libs/revealjs/dist/theme/quarto-dc4d05d0bc4095dda8b86720e93561e2.css">
   <link rel="stylesheet" href="assets/slides.css">
-  <link href="dualQuaternions_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
-  <link href="dualQuaternions_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
-  <link href="dualQuaternions_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
-  <link href="dualQuaternions_files/libs/revealjs/plugin/reveal-chalkboard/font-awesome/css/all.css" rel="stylesheet">
-  <link href="dualQuaternions_files/libs/revealjs/plugin/reveal-chalkboard/style.css" rel="stylesheet">
-  <link href="dualQuaternions_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
+  <link href="matrixInverse_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="matrixInverse_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="matrixInverse_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="matrixInverse_files/libs/revealjs/plugin/reveal-chalkboard/font-awesome/css/all.css" rel="stylesheet">
+  <link href="matrixInverse_files/libs/revealjs/plugin/reveal-chalkboard/style.css" rel="stylesheet">
+  <link href="matrixInverse_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
   <style type="text/css">
     .reveal div.sourceCode {
       margin: 0;
@@ -143,8 +143,8 @@
     <div class="slides">
 
 <section id="title-slide" data-background-image="assets/humber-logo.png" data-background-position="96% 92%" data-background-size="110px" class="quarto-title-block center">
-  <h1 class="title">Game Math 2</h1>
-  <p class="subtitle">Dual Quaternions</p>
+  <h1 class="title">Game Math 1</h1>
+  <p class="subtitle">Matrix Inverse for 2D</p>
 
 <div class="quarto-title-authors">
 <div class="quarto-title-author">
@@ -159,38 +159,92 @@ Umer Noor, PhD
 
   <p class="date">Demos built using Claude Code</p>
 </section>
-<section id="why-angle2" class="slide level2">
-<h2>Why angle/2?</h2>
-<p>You need an axis and an angle to rotate in 3D. But why do quaternions use a mysterious angle/2:</p>
-<p><span class="math display">\[q = \cos(\theta/2) + \hat{\text{axis}}*\sin(\theta/2)\]</span></p>
-<p>It becomes clear if you think of a quaternion as a reflection in two planes going through the origin</p>
-<div class="lab-mount lab-short" data-lab="planes" data-theta="60">
+<section id="matrix-inverse" class="slide level2">
+<h2>Matrix Inverse</h2>
+<p>Why would you ever need to invert a matrix? It makes a transformation go the “other way”</p>
+<div class="fragment">
+<p>If <span class="math inline">\(T*S\)</span> is a matrix that scales <span class="math inline">\(x\)</span> &amp; <span class="math inline">\(y\)</span> by 2 then translates 2 units to the right.</p>
+<p>Then <span class="math inline">\((T*S)^{-1}\)</span> translates 2 units to the left then scales <span class="math inline">\(x\)</span> &amp; <span class="math inline">\(y\)</span> by 0.5</p>
+</div>
+<div class="fragment">
+<div class="lab-mount lab-short" data-lab="2d" data-stages="scale,translate" data-kx="2" data-ky="2" data-dx="2" data-dy="0" data-reorder="false" data-inverse="true">
+
+</div>
+</div>
+</section>
+<section id="transpose" class="slide level2">
+<h2>Transpose</h2>
+<p>How to invert a rotation matrix? Just swap the rows and columns. This is called the transpose.</p>
+<p>If <span class="math inline">\(R\)</span> is a matrix that rotates <span class="math inline">\(45^\circ\)</span> anti-clockwise</p>
+<p>Then the inverse <span class="math inline">\(R^{-1} = R^{T}\)</span> rotates <span class="math inline">\(45^\circ\)</span> clockwise</p>
+<div class="fragment">
+<div class="lab-mount" data-lab="2d" data-stages="rotate" data-theta="45" data-inverse="transpose">
+
+</div>
+</div>
+</section>
+<section id="inverting-anything-else" class="slide level2">
+<h2>Inverting anything else?</h2>
+<p>Bad news, inverting anything more complicated takes more than a transpose.</p>
+<p>We’ll use this formula:</p>
+<div class="big-math">
+<p><span class="math display">\[A^{-1} = \frac{1}{\text{determinant}(A)} * \text{cofactor}(A)^T\]</span></p>
+</div>
+</section>
+<section id="determinant" class="slide level2">
+<h2>Determinant</h2>
+<p>If <span class="math inline">\(A = \begin{pmatrix}
+a &amp; d &amp; g\\
+b &amp; e &amp; h\\
+c &amp; f &amp; i \end{pmatrix}\)</span> then the determinant <span class="math inline">\(= a(ei - hf) - d(bi - hc) + g(bf -ec)\)</span></p>
+<p>Have you fallen asleep looking at that?</p>
+<div class="fragment">
+<p>Try it with the matrix below that rotates <span class="math inline">\(90 ^\circ\)</span> then translates 2 units along <span class="math inline">\(x\)</span> and 3 units along <span class="math inline">\(y\)</span></p>
+<div class="lab-mount" data-lab="det" data-a="0,-1,2,  1,0,3,   0,0,1">
+
+</div>
+</div>
+<div class="fragment">
+<p>Pro tip #1: The determinant is always 1 if your transformation doesn’t change the scale.</p>
+</div>
+<div class="fragment">
+<p>Pro tip #2: It’s actually quicker for us to use the same method with the bottom row instead!</p>
+</div>
+</section>
+<section id="cofactor-matrix" class="slide level2">
+<h2>Cofactor matrix</h2>
+<p>If <span class="math inline">\(A = \begin{pmatrix}
+a &amp; d &amp; g\\
+b &amp; e &amp; h\\
+c &amp; f &amp; i \end{pmatrix}\)</span> then the Cofactor <span class="math inline">\(= \begin{pmatrix}
+ei - hf &amp; -(bi - hc) &amp; bf - ec\\
+-(di - gf) &amp; ai - gc &amp; -(af - dc)\\
+dh - ge &amp; -(ah - gb) &amp; ae - db \end{pmatrix}\)</span></p>
+<p>Have you fallen asleep again?</p>
+<div class="fragment">
+<p>Try it with the matrix below that rotates <span class="math inline">\(90 ^\circ\)</span> then translates 2 units along <span class="math inline">\(x\)</span> and 3 units along <span class="math inline">\(y\)</span></p>
+<div class="lab-mount" data-lab="cofactor" data-a="0,-1,2,  1,0,3,   0,0,1">
+
+</div>
+</div>
+<div class="fragment">
+<p>Pro tip: The top left corner of the cofactor matrix is used for lighting calculations of squished and stretched objects</p>
+</div>
+</section>
+<section id="transposing-the-cofactor-matrix" class="slide level2">
+<h2>Transposing the Cofactor matrix</h2>
+<p>Remember that transposing a matrix just turns every row into a column?</p>
+<p>That fixes the cofactor matrix so the translation stuff is always on the right-most column.</p>
+<p>Try it with the cofactor matrix from the previous slide:</p>
+<div class="lab-mount" data-lab="cofactor-transpose" data-a="0,-1,2,  1,0,3,   0,0,1">
 
 </div>
 </section>
-<section id="why-translation2" class="slide level2">
-<h2>Why translation/2?</h2>
-<p>The mysterious “half” also pops up with translations too</p>
-<p><span class="math display">\[ \text{Dual Quaternion Translator} = 1 - \frac{\Delta x}{2} e_{01} - \frac{\Delta y}{2} e_{02} - \frac{\Delta z}{2} e_{03} \]</span></p>
-<p>Makes sense if you think of it as a reflection across two parallel planes</p>
-<div class="lab-mount lab-short" data-lab="parallel" data-d="0.5">
-
-</div>
-</section>
-<section id="how-to-use-dual-quaternions" class="slide level2">
-<h2>How to use dual quaternions?</h2>
-<p>Combine a rotation <span class="math inline">\(R\)</span> then a translation <span class="math inline">\(T\)</span> by multipying them in the correct order:</p>
-<p><span class="math display">\[TR\]</span></p>
-<p>Rotate then translate a point <span class="math inline">\(P\)</span> by using the sandwich:</p>
-<p><span class="math display">\[TR(P)(TR)^{-1}\]</span></p>
-<p>But how to multiply these things?</p>
-</section>
-<section id="lets-play-dq-candy-crush" class="slide level2">
-<h2>Let’s play DQ Candy Crush!</h2>
-<p>Use the rules: <span class="math display">\[e_1^2 = e_2^2 = e_3^2 = 1\]</span></p>
-<p><span class="math display">\[e_0^2 = 0\]</span></p>
-<p>You can swap the order of multiplication by flipping the sign.</p>
-<div class="lab-mount" data-lab="blades" data-indices="012123">
+<section id="putting-it-all-together" class="slide level2">
+<h2>Putting it all together</h2>
+<p>Now we are ready to invert!</p>
+<p><span class="math display">\[A^{-1} = \frac{1}{\text{determinant}(A)} * \text{cofactor}(A)^T\]</span></p>
+<div class="lab-mount" data-lab="2d" data-stages="scale,rotate,translate" data-theta="90" data-kx="2" data-ky="2" data-dx="-1" data-dy="3" data-view="4.5" data-cy="4" data-reorder="false" data-inverse="true" data-inverse-steps="true" data-dots="y">
 
 </div>
 
@@ -198,25 +252,25 @@ Umer Noor, PhD
     </div>
   <div class="quarto-auto-generated-content" style="display: none;">
 <div class="footer footer-default">
-<p>Game Math 2, Umer Noor PhD</p>
+<p>Game Math 1, Umer Noor, PhD</p>
 </div>
 </div></div>
 
   <script>window.backupDefine = window.define; window.define = undefined;</script>
-  <script src="dualQuaternions_files/libs/revealjs/dist/reveal.js"></script>
+  <script src="matrixInverse_files/libs/revealjs/dist/reveal.js"></script>
   <!-- reveal.js plugins -->
-  <script src="dualQuaternions_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
-  <script src="dualQuaternions_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
-  <script src="dualQuaternions_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
-  <script src="dualQuaternions_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
-  <script src="dualQuaternions_files/libs/revealjs/plugin/reveal-chalkboard/plugin.js"></script>
-  <script src="dualQuaternions_files/libs/revealjs/plugin/quarto-support/support.js"></script>
+  <script src="matrixInverse_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="matrixInverse_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="matrixInverse_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="matrixInverse_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="matrixInverse_files/libs/revealjs/plugin/reveal-chalkboard/plugin.js"></script>
+  <script src="matrixInverse_files/libs/revealjs/plugin/quarto-support/support.js"></script>
   
 
-  <script src="dualQuaternions_files/libs/revealjs/plugin/notes/notes.js"></script>
-  <script src="dualQuaternions_files/libs/revealjs/plugin/search/search.js"></script>
-  <script src="dualQuaternions_files/libs/revealjs/plugin/zoom/zoom.js"></script>
-  <script src="dualQuaternions_files/libs/revealjs/plugin/math/math.js"></script>
+  <script src="matrixInverse_files/libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="matrixInverse_files/libs/revealjs/plugin/search/search.js"></script>
+  <script src="matrixInverse_files/libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script src="matrixInverse_files/libs/revealjs/plugin/math/math.js"></script>
   <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
 
   <script>
