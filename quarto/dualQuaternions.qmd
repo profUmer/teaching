@@ -1,0 +1,47 @@
+---
+title: "Game Math 2"
+subtitle: "Dual Quaternions"
+institute: "Faculty of Media, Creative Arts, and Design, Humber Polytechnic"
+format:
+  revealjs:
+    footer: "Game Math 2, Umer Noor PhD"
+---
+## Why angle/2?
+You need an axis and an angle to rotate in 3D. But why do quaternions use a mysterious angle/2:
+
+$$q = \cos(\theta/2) + \hat{\text{axis}}*\sin(\theta/2)$$
+
+It becomes clear if you think of a quaternion as a reflection in two planes going through the origin
+
+<div class="lab-mount lab-short" data-lab="planes" data-theta="60"></div>
+
+## Why translation/2?
+The mysterious "half" also pops up with translations too 
+
+$$ \text{Dual Quaternion Translator} = 1 - \frac{\Delta x}{2} e_{01} - \frac{\Delta y}{2} e_{02} - \frac{\Delta z}{2} e_{03} $$
+
+Makes sense if you think of it as a reflection across two parallel planes
+
+<div class="lab-mount lab-short" data-lab="parallel" data-d="0.5"></div>
+
+## How to use dual quaternions?
+Combine a rotation $R$ then a translation $T$ by multipying them in the correct order:
+
+$$TR$$  
+
+Rotate then translate a point $P$ by using the sandwich:
+
+$$TR(P)(TR)^{-1}$$
+
+But how to multiply these things?
+
+
+## Let's play DQ Candy Crush!
+Use the rules: 
+$$e_1^2 = e_2^2 = e_3^2 = 1$$ 
+
+$$e_0^2 = 0$$
+
+You can swap the order of multiplication by flipping the sign.
+
+<div class="lab-mount" data-lab="blades" data-indices="012123"></div>

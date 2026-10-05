@@ -259,11 +259,13 @@ stage (`matmul`, below, is the one exception - plain DOM, no stage).
      data-theta="60" data-dx="3" data-dy="0"></div>
 ```
 
-Six kinds exist, chosen with `data-lab`:
+The main kinds, chosen with `data-lab` (the full list, including the Physics 1
+`motion` and `accel` labs, is in [README.md](README.md)):
 
 | `data-lab` | what it does |
 | --- | --- |
 | `2d` (default) | matrix transforms — two tracked vertices, a shape, the composed 3×3 |
+| `3d` | the same in 3D — an extruded house, three tracked vertices, the composed 4×4; drag the canvas to orbit the camera |
 | `polar` | drag a vector; read $[a,b]$ and $r\angle\theta$ off it |
 | `add` | tip-to-tail addition, with an A+B / A−B toggle |
 | `dot` | dot product, and the projection onto $\hat{B}$ |
@@ -272,7 +274,11 @@ Six kinds exist, chosen with `data-lab`:
 
 Common options: `data-view` (half-height in world units), `data-matrix="false"`,
 and for `2d` also `data-stages`, `data-shape`, `data-reorder` and the starting
-slider values `data-theta` / `data-kx` / `data-ky` / `data-dx` / `data-dy`. The
+slider values `data-theta` / `data-kx` / `data-ky` / `data-dx` / `data-dy`.
+`3d` takes the same, plus `data-kz` / `data-dz`, `data-axis` (`x`, `y` or `z`)
+for a plain `rotate` stage, the fixed-axis stages `rotateX` / `rotateY` /
+`rotateZ` with `data-theta-x` / `-y` / `-z`, and `data-yaw` / `data-pitch` for
+the starting camera. The
 vector labs take `data-cx`, `data-cy`, `data-step`, `data-dp` for the camera and
 number formatting, and `reflect` takes `data-preset="peggle"`. The full table is
 in [README.md](README.md).
@@ -309,7 +315,7 @@ Two levels, and it is worth doing both after any change to `assets/*.js`.
 <http://localhost:8000/lab-selftest.html>. It mounts every lab, synthesises
 real pointer drags and slider moves, reads the numbers back out of the panels,
 and compares them against values worked out by hand. You want
-`all 78 checks passed` in green at the top. This covers what a screenshot
+`all 129 checks passed` in green at the top. This covers what a screenshot
 cannot: that a handle can be grabbed, that dragging updates the readout, and
 that the arithmetic is right at more than one position. It also asserts each
 lab was drawn by Canvas 2D, since the readouts alone cannot tell you that.
@@ -325,6 +331,9 @@ from the back of a room:
 | `2d` | drag θ to 90° | matrix goes to $[0, -1; 1, 0]$, house rotates a quarter turn |
 | `2d` | click the θ value, type `45`, Enter | matrix and house match dragging to 45° exactly |
 | `2d` | drag a word to reorder, then **Play** | the house ends somewhere else |
+| `3d` | on *Rotation in 3D*, pick axis **z** and drag θ | the house turns exactly as in 2D; every $z$ stays put |
+| `3d` | drag the canvas | the camera orbits; the matrix does **not** change |
+| `3d` | on the last slide, swap **Rotate Y** and **Rotate X** | a different matrix and a different pose — $R_xR_y \neq R_yR_x$ |
 | `polar` | drag the tip to $(3, 4)$ | $r = 5$, $\theta = 53.1^\circ$ |
 | `add` | drag A onto B | resultant doubles |
 | `dot` | swing A past $90^\circ$ from B | projection goes negative |
@@ -477,7 +486,7 @@ after every `quarto publish gh-pages` while the render list is a single
 file.** `quarto publish` only bundles a file if it can trace a reference to
 it through something it recognises — a CSS `link`, an image in markdown, a
 head-include's `script src`. `labs.js` pulls in `draw2d.js`, `lab-core.js`,
-`lab-mount.js`, `transform-lab.js`, `vector-lab.js`, `motion-lab.js` and
+`lab-mount.js`, `transform-lab.js`, `transform-lab3d.js`, `vector-lab.js`, `motion-lab.js` and
 `matmul-lab.js` via plain JS `import` statements, which that scanner never
 follows — so only `labs.js` itself gets published, every one of those 404s,
 and **every lab silently fails to mount** (the import fails before `boot()`
@@ -513,7 +522,7 @@ Then verify with more than a plain `curl` for a 200 — that only proves the
 HTML loaded, not that the labs did:
 
 ```powershell
-"labs.js","lab-core.js","draw2d.js","transform-lab.js","vector-lab.js","motion-lab.js","matmul-lab.js" |
+"labs.js","lab-core.js","draw2d.js","transform-lab.js","transform-lab3d.js","vector-lab.js","motion-lab.js","matmul-lab.js" |
   ForEach-Object { "$_`: " + (Invoke-WebRequest "https://<user>.github.io/<repo>/assets/$_" -UseBasicParsing).StatusCode }
 ```
 
@@ -560,7 +569,7 @@ For students who want something to print or annotate offline:
 2. Open <http://localhost:8000/matrices.html?print-pdf> — note the `?print-pdf`.
 3. `Ctrl+P`, destination **Save as PDF**, and turn on **Background graphics**.
 
-You get all 22 slides. The labs do come through — the canvas renders as a static
+You get all 17 slides. The labs do come through — the canvas renders as a static
 image of whatever the sliders were set to, with the matrix readout intact. Fragments (`. . .` pauses) are flattened so each slide appears once,
 fully revealed.
 

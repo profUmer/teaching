@@ -1,6 +1,10 @@
 /* Styling for the interactive labs (see transform-lab.js) plus a few
    Beamer-isms carried over from the original decks. */
 
+/* The title slide's date line carries the demo credit instead (_quarto.yml's
+   date-format): the institute's size, set well below it. */
+.reveal .quarto-title-block .date { font-size: 0.7em; margin-top: 6.4em; }
+
 /* ------------------------------------------------------------- lab layout */
 
 .lab {
@@ -30,11 +34,21 @@
 
 /* touch-action so dragging a handle on a tablet does not scroll the deck */
 .lab-vector .lab-canvas,
-.lab-motion .lab-canvas { touch-action: none; }
+.lab-motion .lab-canvas,
+.lab-quat .lab-canvas { touch-action: none; }
 .lab-vector .lab-canvas.over-handle,
-.lab-motion .lab-canvas.over-handle { cursor: grab; }
+.lab-motion .lab-canvas.over-handle,
+.lab-quat .lab-canvas.over-handle { cursor: grab; }
 .lab-vector .lab-canvas.grabbing,
-.lab-motion .lab-canvas.grabbing { cursor: grabbing; }
+.lab-motion .lab-canvas.grabbing,
+.lab-quat .lab-canvas.grabbing { cursor: grabbing; }
+/* the planes lab's one slider has a long name; give it room on one line */
+.lab-quat .lab-slider { grid-template-columns: auto minmax(0, 1fr) 3.6em; }
+.lab-quat .lab-slider-name { white-space: nowrap; }
+
+/* the 3D lab has no handles: any drag on the canvas orbits the camera */
+.lab-3d .lab-canvas { touch-action: none; cursor: grab; }
+.lab-3d .lab-canvas.grabbing { cursor: grabbing; }
 
 .lab-failed::after {
   content: "demo failed to load - see the browser console";
@@ -50,6 +64,35 @@
   min-height: 0;
   height: 470px;
 }
+/* For a slide with more than one line of lead-in: add class="lab-mount
+   lab-short" and the stage gives that text room rather than running into
+   the footer. */
+.reveal .lab-short .lab-stage { height: 400px; }
+
+/* data-inverse-steps (transform-lab.js + det-lab.js's workedInverse): the
+   stage, sliders and Play buttons stack on the left; the worked inverse,
+   two matrices and a line of working, takes the right. */
+.lab-worked { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 0.6rem; }
+.lab-left { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.reveal .lab-worked .lab-stage { height: 230px; }
+.lab-worked .lab-controls { gap: 0.1rem; }
+.det-worked .lab-matrix-grid { font-size: 1.2em; grid-template-columns: repeat(3, minmax(1.9em, auto)) !important; gap: 0.1rem 0.6rem; padding: 0.3em 0.7em; }
+.det-worked .det-name { font-size: 1.1em; }
+.det-worked .det-gap { width: 0.6rem; }
+.det-worked .mm-equation { flex-wrap: nowrap; gap: 0.4rem; }
+.det-term { white-space: nowrap; }
+.det-worked .det-formula { font-size: 1.1em; min-height: 3em; }
+.det-worked .lab-buttons { justify-content: center; margin-top: 0.4rem; }
+/* A and the cofactors on one line above the working, set off by a rule
+   beneath, with determinant(A) under A */
+.det-summary { padding-bottom: 0.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid #e2e5e9; align-items: flex-start; }
+.det-summary .det-name { white-space: nowrap; }
+.det-col { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+.det-col .mm-equation { margin: 0; }
+/* a stacked fraction, as \frac{}{} draws it */
+.det-frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 0.15em; font-size: 1.15em; }
+.det-frac > span { padding: 0 0.2em; line-height: 1.3; }
+.det-frac > span:first-child { border-bottom: 1.5px solid currentColor; }
 
 .lab-panel {
   display: flex;
@@ -221,6 +264,23 @@
 
 .lab-matrix-4 .lab-matrix-grid { grid-template-columns: repeat(4, minmax(3em, auto)); }
 
+/* 3D lab (transform-lab3d.js): a 4x4 readout and up to seven sliders have to
+   share the panel height a 3x3 and five sliders had, so both are tightened. */
+.lab-3d .lab-matrix-grid {
+  grid-template-columns: repeat(4, minmax(2.4em, auto));
+  font-size: 1.25em;
+  gap: 0.05rem 0.4rem;
+}
+.lab-3d .lab-controls { gap: 0.1rem; }
+/* a 4x4 written out above the lab is a row taller than a 3x3, so the stage
+   gives that row back rather than running into the footer */
+.reveal .lab-3d .lab-stage { height: 400px; }
+.lab-3d .lab-panel { gap: 0.5rem; }
+
+.lab-axis-tag { align-self: center; font-style: italic; color: #55606b; }
+.lab-axis-button { min-width: 2.2em; font-style: italic; }
+.lab-axis-button.is-on { background: #8d1b1b; color: #fff; }
+
 /* ----------------------------------------------------- matrix multiply --- */
 /* No canvas stage here (see matmul-lab.js), so this overrides .lab's two-
    column stage|panel grid with a single centred column instead. Three
@@ -275,6 +335,79 @@
 .mm-hl-c { background: rgba(29, 122, 76, 0.22); border-radius: 4px; font-weight: 700; }
 
 .lab-matmul .lab-buttons { justify-content: center; margin-top: 0.8rem; }
+
+/* ------------------------------------------------------- determinant --- */
+/* det-lab.js: laid out like matmul - one centred column, no canvas. */
+.lab-det { display: block; width: 100%; }
+.lab-det .lab-matrix-grid { font-size: 1.4em; }
+.det-name { font-size: 1.4em; font-family: var(--r-code-font, monospace); }
+.det-gap { width: 2.5rem; }
+.lab-det .lab-buttons { justify-content: center; margin-top: 0.6rem; }
+.det-formula { line-height: 1.5; }
+/* the blocked-out row and column of the element being picked */
+.det-out { color: #c4c9ce; background: rgba(0, 0, 0, 0.05); border-radius: 4px; text-decoration: line-through; }
+
+/* ------------------------------------------------ basis-vector candy crush */
+/* blade-lab.js: one centred column like det, the indices as coloured tiles
+   sitting low beside the e, as its subscript. 0 purple, and 1/2/3 the
+   red/green/blue of x/y/z. */
+.lab-blades { display: block; width: 100%; font-size: 1.3em; }
+.bl-picks { display: flex; justify-content: center; align-items: center; gap: 0.05em; }
+/* the e the typed indices belong to; the box sits low, as its subscript */
+.bl-own-e { font-family: var(--r-code-font, monospace); font-size: 1.6em; font-style: italic; }
+.bl-picks .bl-own { transform: translateY(0.45em); }
+.bl-own-wrap { position: relative; display: inline-flex; align-items: center; gap: 0.05em; }
+.bl-meaning {
+  position: absolute; left: 100%; margin-left: 0.6em; white-space: nowrap;
+  font-family: var(--r-code-font, monospace); font-size: 1.3em; font-style: italic; color: #55606b;
+}
+.bl-own {
+  font: inherit; font-family: var(--r-code-font, monospace); font-size: 0.9em; letter-spacing: 0.15em;
+  width: 6.5em; padding: 0.2em 0.3em; text-align: left; border: 1px solid #c4c9ce; border-radius: 4px;
+}
+
+.bl-board {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.15rem; min-height: 4.6em; margin-top: 0.6rem;
+  font-family: var(--r-code-font, monospace);
+}
+.bl-eq { font-size: 2.6em; margin-right: 0.1em; color: #1c1f23; }
+/* always one character wide, so a minus coming and going does not shift the tiles */
+.bl-coef { display: inline-block; width: 0.65em; text-align: center; font-size: 2.6em; font-weight: 700; color: #1c1f23; }
+.bl-e { font-size: 2.6em; font-style: italic; margin-right: 0.05em; }
+/* dropped below the e's line, the way a subscript sits */
+.bl-sub { display: inline-flex; align-items: center; gap: 0.25rem; transform: translateY(0.9em); }
+.bl-tile {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.8em; height: 1.8em; font-size: 1.3em; font-weight: 700; color: #fff;
+  border-radius: 0.45em; box-shadow: inset 0 -0.18em 0 rgba(0, 0, 0, 0.22);
+}
+.bl-i0 { background: #6b4fa0; }
+.bl-i1 { background: #c0392b; }
+.bl-i2 { background: #1d7a4c; }
+.bl-i3 { background: #1f6fb2; }
+
+.bl-gap {
+  font: inherit; font-size: 0.9em; width: 1.7em; height: 1.7em; padding: 0;
+  border: 1px solid #c4c9ce; border-radius: 50%; background: #fff; color: #55606b; cursor: pointer;
+}
+.bl-gap:hover { border-color: #8d1b1b; color: #8d1b1b; }
+.bl-gap-pop { border-color: #d4a017; background: #fff4cf; color: #8a6400; animation: bl-glow 0.9s ease-in-out infinite alternate; }
+
+.bl-swapped { animation: bl-bounce 0.35s ease-out; }
+.bl-flip { animation: bl-flash 0.5s ease-out; }
+.bl-pop { animation: bl-pop 0.45s ease-in forwards; }
+
+@keyframes bl-bounce { 0% { transform: translateY(-0.35em) scale(1.08); } 100% { transform: none; } }
+@keyframes bl-flash { 0% { color: #c0392b; transform: scale(1.3); } 100% { color: inherit; transform: none; } }
+@keyframes bl-glow { from { box-shadow: 0 0 0 0 rgba(212, 160, 23, 0.0); } to { box-shadow: 0 0 0 0.25em rgba(212, 160, 23, 0.35); } }
+/* the matched pair bursts, then gives its room back */
+@keyframes bl-pop {
+  0%   { transform: scale(1); opacity: 1; }
+  40%  { transform: scale(1.3) rotate(8deg); opacity: 1; }
+  100% { transform: scale(0); opacity: 0; width: 0; margin: 0; font-size: 0; }
+}
+
 
 /* ---------------------------------------------------- derived-value readout */
 
@@ -369,3 +502,8 @@ html.print-pdf .lab-stage { height: 400px; min-height: 0; }
   font-size: 0.5em;
   color: #6b747d;
 }
+
+/* A key formula that should own the slide: wrap the $$...$$ in
+   ::: {.big-math} and it is drawn half again as large (display math is
+   already centred). */
+.reveal .big-math { font-size: 1.5em; margin-top: 1em; }

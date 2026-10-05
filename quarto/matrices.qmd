@@ -1,11 +1,7 @@
 ---
 title: "Game Math 1"
-subtitle: "Matrices for 2D"
+subtitle: "Matrices in 2D"
 institute: "Faculty of Media, Creative Arts, and Design, Humber Polytechnic"
-title-slide-attributes:
-  data-background-image: assets/humber-logo.png
-  data-background-size: 110px
-  data-background-position: 96% 92%
 ---
 ## Matrices
 A matrix is just a table of numbers. Here's an example from the wild:
@@ -113,4 +109,3 @@ Just keep on dumptrucking for multiplying matrices:
 Multiply matrices to combine transformations. But be careful, order matters!
 
 <div class="lab-mount" data-lab="2d" data-stages="rotate,scale,translate" data-theta="60" data-kx="1.5" data-ky="1.5" data-dx="3" data-dy="0"></div>
-

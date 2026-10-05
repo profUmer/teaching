@@ -28,7 +28,7 @@ export const css = (n) => '#' + n.toString(16).padStart(6, '0');
  * the half-width follows the aspect ratio, with (cx, cy) at the centre of the
  * canvas.
  */
-export function makeStage2D(stageEl, { view = 4, cx = 0, cy = 0, step = 1 } = {}) {
+export function makeStage2D(stageEl, { view = 4, cx = 0, cy = 0, step = 1, grid = true } = {}) {
   const canvas = document.createElement('canvas');
   canvas.className = 'lab-canvas';
   stageEl.appendChild(canvas);
@@ -61,11 +61,13 @@ export function makeStage2D(stageEl, { view = 4, cx = 0, cy = 0, step = 1 } = {}
 
   const halfWidth = () => view * (cssW / cssH);
 
-  /* Clears the frame and lays down grid and axes. Everything else paints on top. */
+  /* Clears the frame and lays down grid and axes, unless `grid` is false.
+     Everything else paints on top. */
   function begin() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     applyTransform();
+    if (!grid) return;          // a diagram with no coordinates, just a blank page
 
     const halfW = halfWidth();
     ctx.lineCap = 'butt';
@@ -208,7 +210,11 @@ function toDevice(ctx, at) {
   };
 }
 
-export function label(ctx, at, text, size, align = 'left', dy = 0) {
+/* `halo` outlines the text in the stage's background colour first, so a line
+   running behind a label does not strike through it. */
+const HALO = '#fcfcfd';   // .lab-stage's background in slides.css
+
+export function label(ctx, at, text, size, align = 'left', dy = 0, halo = false) {
   const { px, py, scale } = toDevice(ctx, at);
 
   ctx.save();
@@ -216,6 +222,12 @@ export function label(ctx, at, text, size, align = 'left', dy = 0) {
   ctx.font = `600 ${size * scale}px ${LABEL_FONT}`;
   ctx.textAlign = align;
   ctx.textBaseline = 'middle';
+  if (halo) {
+    ctx.strokeStyle = HALO;
+    ctx.lineWidth = size * scale * 0.6;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(text, px, py - dy * scale);
+  }
   ctx.fillText(text, px, py - dy * scale);
   ctx.restore();
 }
@@ -312,16 +324,20 @@ export function paint(stage, display, handles, W) {
   if (!display) return;
   const { ctx } = stage;
 
-  for (const layer of LAYERS) {
-    ctx.globalAlpha = layer.alpha;
-    ctx.strokeStyle = ctx.fillStyle = css(layer.color);
+  // Two passes: everything else, then text, each in layer order - so a label
+  // in one colour is never struck through by a line in a later layer.
+  for (const textPass of [false, true]) {
+    for (const layer of LAYERS) {
+      ctx.globalAlpha = layer.alpha;
+      ctx.strokeStyle = ctx.fillStyle = css(layer.color);
 
-    if (layer.isFill) {
-      if (display.fill) fillShape(ctx, display.fill);
-      continue;
-    }
-    for (const d of display.shapes) {
-      if (d.layer === layer.name) drawShape(ctx, d, W);
+      if (layer.isFill) {
+        if (!textPass && display.fill) fillShape(ctx, display.fill);
+        continue;
+      }
+      for (const d of display.shapes) {
+        if (d.layer === layer.name && (d.kind === 'text') === textPass) drawShape(ctx, d, W);
+      }
     }
   }
 
@@ -336,6 +352,7 @@ function drawShape(ctx, d, W) {
     case 'line':   return stroke(ctx, d.points, d.width ?? W.line, d.closed);
     case 'dashed': return dashed(ctx, d.points, d.width ?? W.thin, W.dash);
     case 'arc':    return arc(ctx, d.centre, d.r, d.a0, d.a1, d.width ?? W.thin);
-    case 'text':   return label(ctx, d.at, d.text, d.size ?? W.text, d.align, d.dy);
+    case 'text':   return label(ctx, d.at, d.text, d.size ?? W.text, d.align, d.dy, d.halo);
+    case 'dot':    return disc(ctx, d.at, d.r ?? W.handle);
   }
 }

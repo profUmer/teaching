@@ -56,6 +56,17 @@
   <div class="lab-mount" id="t-motion-d" data-lab="motion" data-show="displacement" data-view="3" data-cy="0"></div>
   <div class="lab-mount" id="t-motion-v" data-lab="motion" data-show="velocity"     data-view="3" data-cy="0"></div>
   <div class="lab-mount" id="t-accel"    data-lab="accel"  data-view="30" data-cx="32" data-cy="12"></div>
+  <!-- 3D (4x4) transform lab: two rotations that do not commute, and T S R
+       with the axis picker. -->
+  <div class="lab-mount" id="t-3d-rot" data-lab="3d" data-stages="rotateX,rotateY"
+       data-theta-x="90" data-theta-y="90"></div>
+  <div class="lab-mount" id="t-3d-trs" data-lab="3d" data-stages="rotate,scale,translate"
+       data-axis="y" data-theta="90" data-kx="2" data-ky="2" data-kz="2" data-dx="3" data-dy="0" data-dz="0"></div>
+  <!-- Math 2, quaternions: two reflections make a rotation. -->
+  <div class="lab-mount" id="t-planes" data-lab="planes" data-theta="60"></div>
+  <div class="lab-mount" id="t-parallel" data-lab="parallel" data-d="1.5"></div>
+  <!-- Math 2, dual quaternions: DQ Candy Crush on the slide's four terms. -->
+  <div class="lab-mount" id="t-blades" data-lab="blades" data-indices="01123"></div>
 </div>
 
 <script type="module">
@@ -188,12 +199,17 @@ async function waitUntil(fn, timeout = 4000) {
 }
 
 const ready = () => waitUntil(() =>
-  document.querySelectorAll('.rig canvas').length === 9
+  document.querySelectorAll('.rig canvas').length === 13
   && document.querySelectorAll('#t-reflect .lab-value-row').length > 0
   && document.querySelectorAll('#t-accel .lab-value-row').length > 0
+  && document.querySelector('#t-planes canvas')?.dataset.p2
+  && document.querySelector('#t-parallel canvas')?.dataset.p2
   && matrixCells('t-2d').length >= 9
+  && matrixCells('t-3d-rot').length === 16
+  && matrixCells('t-3d-trs').length === 16
   && document.querySelectorAll('#t-matmul .lab-matrix-grid').length === 3
-  && document.querySelectorAll('#t-matvec .lab-matrix-grid').length === 6);
+  && document.querySelectorAll('#t-matvec .lab-matrix-grid').length === 6
+  && document.querySelectorAll('#t-blades .bl-tile').length > 0);
 
 /* ------------------------------------------------------------------ tests --- */
 
@@ -212,7 +228,7 @@ async function run() {
      context, so this stays as a guard against anything reintroducing one.
      See PLAN.md 2.1. */
   for (const id of ['polar', 'add', 'dot', 'reflect', '2d',
-                    'motion-p', 'motion-d', 'motion-v', 'accel']) {
+                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel']) {
     const canvas = document.getElementById(`t-${id}`).querySelector('canvas');
     const kind = canvas.getContext('2d') ? 'canvas2d' : 'webgl';
     record(kind === 'canvas2d', `${id.padEnd(8)} drawn by Canvas 2D`, kind, 'canvas2d');
@@ -453,6 +469,195 @@ async function run() {
   await sleep(40);
   nearVec('accel   a at t=5', pair(rowValue('t-accel', 'a =')), [12.5, 2.4], 0.12);
   nearVec('accel   change in v unaffected by t', pair(rowValue('t-accel', 'change in velocity')), [62.5, 12], 0.5);
+
+  /* -- 3d transform lab: 4x4 matrices -------------------------------------- */
+  // Hand-worked: Ry(90) Rx(90) = [0 1 0; 0 0 -1; -1 0 0] and
+  // Rx(90) Ry(90) = [0 0 1; 1 0 0; 0 1 0] - different, the point of the slide.
+  document.getElementById('t-3d-rot').scrollIntoView({ block: 'center' });
+  await sleep(60);
+  let m4 = matrixCells('t-3d-rot');
+  const chips3 = orderChipEls('t-3d-rot').map((c) => c.textContent).join(' ');
+  record(chips3 === 'Rotate Y Rotate X', '3d     initial chip order', chips3, 'Rotate Y Rotate X');
+  near('3d     RyRx m12 = 1', m4[1], 1, 0.01);
+  near('3d     RyRx m23 = -1', m4[6], -1, 0.01);
+  near('3d     RyRx m31 = -1', m4[8], -1, 0.01);
+  near('3d     RyRx m44 = 1', m4[15], 1, 0.01);
+
+  // Orbiting the camera is a view change, not a transform: the matrix must not move.
+  const c3 = document.querySelector('#t-3d-rot canvas').getBoundingClientRect();
+  const ob = { bubbles: true, cancelable: true, pointerId: 3, pointerType: 'mouse', isPrimary: true };
+  const cv3 = document.querySelector('#t-3d-rot canvas');
+  cv3.dispatchEvent(new PointerEvent('pointerdown', { ...ob, clientX: c3.left + 100, clientY: c3.top + 100 }));
+  cv3.dispatchEvent(new PointerEvent('pointermove', { ...ob, clientX: c3.left + 220, clientY: c3.top + 160 }));
+  cv3.dispatchEvent(new PointerEvent('pointerup',   { ...ob, clientX: c3.left + 220, clientY: c3.top + 160 }));
+  await sleep(40);
+  const same = matrixCells('t-3d-rot').every((v, i) => Math.abs(v - m4[i]) < 1e-9);
+  record(same, '3d     orbiting the camera leaves the matrix', same, true);
+
+  {
+    const [a, b] = orderChipEls('t-3d-rot');
+    dragChip(a, b);
+    await waitUntil(() => Math.abs(matrixCells('t-3d-rot')[2] - 1) < 0.02);
+    m4 = matrixCells('t-3d-rot');
+    near('3d     RxRy m13 = 1', m4[2], 1, 0.01);
+    near('3d     RxRy m21 = 1', m4[4], 1, 0.01);
+    near('3d     RxRy m32 = 1', m4[9], 1, 0.01);
+  }
+
+  // T S Ry(90), k = 2, d = (3,0,0): rows [0 0 2 3; 0 2 0 0; -2 0 0 0]
+  document.getElementById('t-3d-trs').scrollIntoView({ block: 'center' });
+  await sleep(60);
+  m4 = matrixCells('t-3d-trs');
+  near('3d     TSRy m13 = 2 sin90', m4[2], 2, 0.01);
+  near('3d     TSRy m14 = dx', m4[3], 3, 0.01);
+  near('3d     TSRy m31 = -2 sin90', m4[8], -2, 0.01);
+
+  // switch the axis to x: T S Rx(90) rows [2 0 0 3; 0 0 -2 0; 0 2 0 0]
+  const xBtn = [...document.querySelectorAll('#t-3d-trs .lab-axis-button')].find((b) => b.textContent === 'x');
+  record(!!xBtn, '3d     axis picker has an x button', !!xBtn, true);
+  xBtn?.click();
+  await waitUntil(() => Math.abs(matrixCells('t-3d-trs')[0] - 2) < 0.02);
+  m4 = matrixCells('t-3d-trs');
+  near('3d     TSRx m11 = 2', m4[0], 2, 0.01);
+  near('3d     TSRx m23 = -2 sin90', m4[6], -2, 0.01);
+  near('3d     TSRx m32 = 2 sin90', m4[9], 2, 0.01);
+
+  // drag Translate to the right end: S Rx T moves the point (3,0,0) *then*
+  // scales it, so the translation column doubles to 6
+  {
+    const chips = orderChipEls('t-3d-trs');
+    dragChip(chips[0], chips[2]);
+    await waitUntil(() => Math.abs(matrixCells('t-3d-trs')[3] - 6) < 0.02);
+    near('3d     SRxT m14 = 2 dx', matrixCells('t-3d-trs')[3], 6, 0.01);
+    const after = orderChipEls('t-3d-trs').map((c) => c.textContent).join(' ');
+    record(after === 'Scale Rotate Translate', '3d     chips re-render in dropped order', after, 'Scale Rotate Translate');
+  }
+
+  /* -- planes: reflect in two planes theta/2 apart, turn by theta ---------- */
+  /* No readout on this lab, so it publishes its numbers on the canvas. */
+  {
+    const cv = () => document.querySelector('#t-planes canvas').dataset;
+    const P0 = [2.3 * Math.cos(-110 * Math.PI / 180), 2.3 * Math.sin(-110 * Math.PI / 180)];
+    const turn = (deg) => {
+      const a = (deg * Math.PI) / 180;
+      return [P0[0] * Math.cos(a) - P0[1] * Math.sin(a), P0[0] * Math.sin(a) + P0[1] * Math.cos(a)];
+    };
+    const p2 = () => cv().p2.split(',').map(Number);
+    const row = document.querySelector('#t-planes .lab-value-row');
+    record(!row, 'planes  no readout rows', !!row, false);
+
+    near('planes  start: planes 30 apart', num(cv().half), 30, 0.01);
+    near('planes  start: P turned through 60', num(cv().turned), 60, 0.1);
+    nearVec('planes  start: P″ = P rotated 60', p2(), turn(60));
+
+    setSlider('t-planes', 'Angle between planes', 45);
+    await sleep(40);
+    near('planes  45 apart: turned 90', num(cv().turned), 90, 0.1);
+    nearVec('planes  45 apart: P″ = P rotated 90', p2(), turn(90));
+
+    setSlider('t-planes', 'Angle between planes', 90);
+    await sleep(40);
+    nearVec('planes  90 apart: P″ = -P', p2(), [-P0[0], -P0[1]]);
+
+    near('planes  90 apart: turned 180', num(cv().turned), 180, 0.1);
+
+    // the slider stops at 90: two planes 90 apart already make a half turn
+    typeValue('t-planes', 'Angle between planes', '150');
+    await sleep(40);
+    near('planes  slider capped at 90', num(cv().half), 90, 0.01);
+
+    const playBtn = [...document.querySelectorAll('#t-planes .lab-button')].find((b) => b.textContent === 'Play');
+    record(!!playBtn, 'planes  has a Play button', !!playBtn, true);
+    playBtn?.click();
+    await sleep(40);
+    record(cv().playing === '1', 'planes  Play starts the animation', cv().playing, '1');
+
+    // drag P somewhere else at 45 apart: still a quarter turn
+    setSlider('t-planes', 'Angle between planes', 45);
+    drag('t-planes', P0, [1, 2], { view: 3.2 });
+    await sleep(40);
+    nearVec('planes  dragged P: P″ = P rotated 90', p2(), [-2, 1]);
+  }
+
+  /* -- parallel: reflect in two planes t/2 apart, slide by t -------------- */
+  {
+    const cv = () => document.querySelector('#t-parallel canvas').dataset;
+    const p2 = () => cv().p2.split(',').map(Number);
+    const P0 = [2.3 * Math.cos(-110 * Math.PI / 180), 2.3 * Math.sin(-110 * Math.PI / 180)];
+
+    near('parallel  start: planes 1.5 apart', num(cv().half), 1.5, 0.01);
+    near('parallel  start: P moved 3', num(cv().moved), 3, 0.01);
+    nearVec('parallel  start: P″ = P + [0, 3]', p2(), [P0[0], P0[1] + 3]);
+
+    setSlider('t-parallel', 'Distance between planes', 2);
+    await sleep(40);
+    near('parallel  2 apart: moved 4', num(cv().moved), 4, 0.01);
+
+    typeValue('t-parallel', 'Distance between planes', '9');
+    await sleep(40);
+    near('parallel  slider capped at 2.5', num(cv().half), 2.5, 0.01);
+
+    // drag P elsewhere: the move is still twice the gap
+    setSlider('t-parallel', 'Distance between planes', 1);
+    drag('t-parallel', P0, [-1, -2], { view: 3.4, cx: 0.8, cy: 0.4 });
+    await sleep(40);
+    nearVec('parallel  dragged P: P″ = P + [0, 2]', p2(), [-1, 0]);
+
+    const btn = [...document.querySelectorAll('#t-parallel .lab-button')].find((b) => b.textContent === 'Play');
+    btn?.click();
+    await sleep(40);
+    record(cv().playing === '1', 'parallel  Play starts the animation', cv().playing, '1');
+  }
+
+  /* -- blades: swap flips the sign, 11/22/33 vanish, 00 kills the term ----- */
+  {
+    const lab = document.getElementById('t-blades');
+    const answer = () => lab.dataset.term;
+    const tiles = () => [...lab.querySelectorAll('.bl-tile:not(.bl-pop)')].map((t) => t.textContent).join('');
+    const gaps = () => [...lab.querySelectorAll('.bl-gap')];
+    const own = lab.querySelector('.bl-own');
+    const type = (text) => { own.value = text; own.dispatchEvent(new Event('input')); };
+
+    record(lab.querySelectorAll('.lab-button:not(.bl-gap)').length === 0, 'blades  no Prev/Next/Reset',
+      lab.querySelectorAll('.lab-button:not(.bl-gap)').length, 0);
+    record(tiles() === '01123' && answer() === 'e01123', 'blades  starts on data-indices', `${tiles()} ${answer()}`, '01123 e01123');
+    record(gaps().map((g) => g.textContent).join('') === '⇄✸⇄⇄', 'blades  swap / pop buttons between tiles',
+      gaps().map((g) => g.textContent).join(''), '⇄✸⇄⇄');
+
+    const meaning = () => lab.querySelector('.bl-meaning').textContent.replace(/\s+/g, '');
+    record(meaning() === '=e0e1e1e2e3', 'blades  says what the indices mean', meaning(), '=e0e1e1e2e3');
+
+    // a swap brings a minus sign in; nothing on the row may move for it
+    const lefts = () => gaps().map((g) => Math.round(g.getBoundingClientRect().left)).join(',');
+    const before = lefts();
+    gaps()[0].click();
+    record(answer() === '−e10123' && lefts() === before, 'blades  a swap does not shift the buttons',
+      `${answer()} ${lefts()}`, `−e10123 ${before}`);
+    gaps()[0].click();
+
+    // 0 1 1 2 3: pop the 11, then 023 -> 032 is one swap, so a minus
+    gaps()[1].click();
+    record(answer() === 'e023', 'blades  11 = 1: the pair disappears', answer(), 'e023');
+    gaps()[1].click();
+    record(answer() === '−e032', 'blades  a swap flips the sign', answer(), '−e032');
+
+    // 0 1 0 3 2: swap 1 and 0, then the 00 kills the whole term
+    type('01032');
+    gaps()[0].click();
+    record(answer() === '−e10032', 'blades  typed 01032, swap', answer(), '−e10032');
+    gaps()[1].click();
+    record(answer() === '0' && tiles() === '', 'blades  00 = 0: the whole term goes', `${answer()} ${tiles()}`, '0 (none)');
+
+    // 22 pops to a plain number
+    type('22');
+    gaps()[0].click();
+    record(answer() === '1', 'blades  e22 = 1', answer(), '1');
+
+    type('a1x9 3-2');
+    record(own.value === '132', 'blades  only indices 0-3 can be typed', own.value, '132');
+    type('012301230');
+    record(own.value.length === 7 && tiles().length === 7, 'blades  at most 7 indices', own.value, '0123012');
+  }
 
   /* -- summary ------------------------------------------------------------ */
   const failed = results.filter((r) => !r.ok).length;

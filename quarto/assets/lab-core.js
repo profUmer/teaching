@@ -267,6 +267,7 @@ export function orderChips(parent, items, label, onChange) {
 }
 
 export function fmt(v, dp = 2) {
+  if (Number.isNaN(v)) return '–';   // a cell with no value, e.g. a missing inverse
   if (Math.abs(v) < 5e-3) return '0';
   return (Math.round(v * 10 ** dp) / 10 ** dp).toFixed(dp).replace(/\.?0+$/, '') || '0';
 }

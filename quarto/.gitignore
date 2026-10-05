@@ -6,9 +6,15 @@
 matrices.html
 vectors.html
 motion.html
+matrixInverse.html
+dualQuaternions.html
+matricesPlus3d.html
 matrices_files/
 vectors_files/
 motion_files/
+matrixInverse_files/
+dualQuaternions_files/
+matricesPlus3d_files/
 
 # Bundle built by tools/make-deploy.ps1 for itch.io / manual upload
 _deploy/

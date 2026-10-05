@@ -1,6 +1,6 @@
 # Project status and plan
 
-Last updated: 2026-08-05
+Last updated: 2026-09-26
 
 Where the Beamer → Quarto migration stands, what is decided, and what is still
 open. [README.md](README.md) is the reference for using what exists;
@@ -19,22 +19,25 @@ browser. See §1.1 for what is left.
 
 | | course | slides | demos | source |
 | --- | --- | --- | --- | --- |
-| Matrix Transformations | GAME 220 | 22 | 3 | `matrices.qmd` ← `../matrices/main.tex` |
+| Matrix Transformations | GAME 220 | 17 | 12 | `matrices.qmd` ← `../matrices/main.tex` |
 | Math Review | GAME 220 | 39 | 4 | `vectors.qmd` ← `../vectors/main.tex` |
 | Motion | GAME 105 | 18 | 4 | `motion.qmd` ← `../Game Physics 1/motion/main.tex` |
 
 - **Quarto 1.10.18** installed via winget. `git` 2.45.2 and `gh` 2.32.1 present.
 - **69 figures** converted EPS → SVG into `figs/` by `tools/eps2svg.sh`, of
   which 25 are actually referenced by the two decks (§3.9).
-- **Interactive labs**, seven kinds: `2d` (matrices); `polar`, `add`, `dot`,
-  `reflect` (vectors); `motion`, `accel` (motion) — **all drawn with Canvas 2D**
-  (§2.1). Code is layered `lab-core.js` + `draw2d.js` → `lab-mount.js` →
-  `transform-lab.js` / `vector-lab.js` / `motion-lab.js` → `labs.js`.
+- **Interactive labs**, nine kinds: `2d`, `3d`, `matmul` (matrices); `polar`,
+  `add`, `dot`, `reflect` (vectors); `motion`, `accel` (motion) — **all drawn
+  with Canvas 2D** except `matmul`, which is plain DOM (§2.1). Code is layered
+  `lab-core.js` + `draw2d.js` → `lab-mount.js` → `transform-lab.js` /
+  `transform-lab3d.js` / `vector-lab.js` / `motion-lab.js` / `matmul-lab.js` →
+  `labs.js`.
 - **No third-party dependency at all.** three.js is deleted (§2.1); `assets/` is
   43 KB of source plus the 23 KB logo, and the decks still need no network in
   class.
 - **`serve.cmd`** for presenting; **`lab-preview.html`** for tweaking demos;
-  **`lab-selftest.html`** for regression checks (56 checks, all passing).
+  **`lab-selftest.html`** for regression checks (98 checks, all passing as of
+  2026-09-26).
   It can be run headlessly, which is how each renderer conversion is gated:
   `python -m http.server 8000`, then
   `chrome --headless=new --enable-unsafe-swiftshader --virtual-time-budget=25000
@@ -85,7 +88,7 @@ theme, so the pipeline carries over unchanged.
 
 | course | code | source | decks | frames | figures | size | state |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Game Math 1 | GAME 220 | `../matrices`, `../vectors` | 2 | 51 | 69 | 57 MB | **converted** → 61 slides |
+| Game Math 1 | GAME 220 | `../matrices`, `../vectors` | 2 | 51 | 69 | 57 MB | **converted** → 56 slides |
 | Game Physics 1 | GAME 105 | `../Game Physics 1` | 7 | 103 | 38 | 101 MB | **1 of 7 converted** → `motion`, §1.3 |
 | Game Physics 2 | GAME 158 | `../Game Physics 2` | 16 | 243 | 140 | 166 MB | Beamer only |
 
@@ -232,6 +235,45 @@ quasi-static — they recompute on a drag or a slider, never on a clock — so
 `runLoop` was not stretched at all. `eqnsOfMotion` and its projectile motion is
 still the deck that answers it.
 
+### 1.4 3D matrix slides (2026-09-26)
+
+`matrices.qmd` now carries the 2D ideas through to 4×4 matrices: **10 → 17
+slides**, subtitle *Matrices for 2D and 3D*. The seven new slides follow
+*Order Matters*: From 2D to 3D (3×3 vs 4×4 translation, side by side), Scale,
+Translate, Rotation Matrices ($R_x$, $R_y$, $R_z$ written out), Rotation (lab
+with an x/y/z axis picker), Order Matters in 3D, and Rotations Don't Commute in
+3D ($R_xR_y \neq R_yR_x$ — the one thing 2D cannot show).
+
+| file | change |
+| --- | --- |
+| `assets/transform-lab3d.js` | new — `mountLab3D`: 4×4 maths, orbit camera, extruded house, same sliders / chips / Play / readout as the `2d` lab |
+| `assets/labs.js` | dispatches `3d`; new options `kz`, `dz`, `thetaX/Y/Z`, `yaw`, `pitch`, `axis`, `axis-pick` |
+| `assets/slides.css` | `.lab-3d` rules: 4-column readout, tighter panel, 400 px stage so the 4×4 above the lab clears the footer |
+| `matrices.qmd` | seven slides, five `3d` lab mounts |
+| `lab-selftest.html` | +20 checks, 78 → 98 |
+| `lab-preview.html` | two `3d` sections |
+
+**This brings a `3d` lab back without bringing three.js back**, and is
+consistent with §2.1 rather than an exception to it. The house is 10 vertices
+and 7 faces: a hand-written perspective divide and a painter's-algorithm face
+sort (exact here, since the house is convex) are ~20 lines, readable in class,
+and draw through the same `draw2d.js` primitives as every other lab. A lab
+that needs real depth buffering or thousands of triangles is still the trigger
+for `draw3d.js`; this was not it.
+
+Three things worth carrying forward:
+
+- **Orbiting the camera does not touch the matrix**, and a self-test check pins
+  that. It is also the teaching point: moving the camera is a view change, not
+  a model transform — a useful hook for the view/projection matrices later.
+- **Vertex labels can collide in 3D** in a way they never did in 2D, since
+  three column vectors share one projected picture. They get a white halo, and
+  the last slide starts at `data-yaw="28"` because the default angle stacked
+  two labels. After reordering in class, an orbit drag fixes any overlap.
+- **Shell heredocs collapsed `\\` to `\` in the LaTeX**, which silently broke
+  every `pmatrix` row (pandoc then printed the rest as text). The screenshot
+  caught it, not the self-test — same lesson as §1.3.
+
 ---
 
 ## 2. Decisions made
@@ -267,7 +309,8 @@ still the deck that answers it.
 
 **Done as of 2026-08-05.** Game Math 1 and Game Physics 1 are entirely 2D, so
 the `3d` transform lab was removed, taking three.js to zero consumers — deleted
-rather than kept for one slide. The rest of this section is the reasoning, kept
+rather than kept for one slide. (A `3d` lab returned on 2026-09-26 for the 4×4
+slides, drawn with Canvas 2D and no library — §1.4.) The rest of this section is the reasoning, kept
 because it is the standing argument for what future courses should do.
 
 The 2D labs never really used it. They draw grids, arrows and dashed
@@ -319,6 +362,52 @@ not re-vendor three.js until a specific lab genuinely needs an interactive
 perspective scene — by then it will be several versions past the r160 currently
 in `assets/`.
 
+#### When to bring three.js back (added 2026-09-26)
+
+The 3D matrix slides (§1.4) were the first real test of the rule above, and
+Canvas 2D held: the `3d` lab is a hand-written perspective divide plus a
+painter's-algorithm face sort over one 10-vertex house. Kept here so the next
+3D lab is a deliberate call rather than a default either way.
+
+**Why Canvas 2D won for the 4×4 slides:**
+
+- **The scene is tiny.** One convex shape; ~20 lines of projection and sort
+  against ~1.3 MB of library.
+- **It reuses the lab framework.** Sliders, order chips, the 4×4 readout and the
+  `[x, y, z, 1]` column-vector labels all come from `lab-core.js` / `draw2d.js`,
+  exactly as in the `2d` lab. Text labels are awkward in three.js, and the
+  self-test's Canvas 2D identity check would fail.
+- **The projection is the lesson.** It is a matrix and a divide, readable on a
+  slide — not a black box — and it is immediate mode, matching `Scene0::Render`.
+- **Publishing.** Every imported module is another file `quarto publish` does
+  not trace (TUTORIAL.md §8), so another file to patch onto `gh-pages` by hand.
+
+**What three.js would buy, i.e. the triggers to revisit:**
+
+- **Correct occlusion for any geometry.** The painter's sort is exact only
+  because the house is convex. Concave meshes, several intersecting objects, or
+  anything needing a depth buffer is the first trigger.
+- **Real lighting, materials and loaded models** — a spaceship or character
+  rather than a hand-typed vertex list.
+- **Polished camera controls** — OrbitControls' damping, zoom and pan, versus
+  the lab's plain yaw/pitch drag.
+- **Scale of 3D content.** If a course grows several 3D labs — the view and
+  projection matrices, a camera frustum, quaternions and orientation — hand-rolling
+  each starts costing more than the library.
+
+**Likely candidates:** a view/projection-matrix lab (the natural next step after
+§1.4's "orbiting is a view change, not a transform"), camera frustum and
+clipping, quaternion/orientation demos in a later course. Math 2's ray tracer is
+*not* one — see above.
+
+**If it comes back:** vendor a current release (never a CDN, §2), load it only
+from `draw3d.js` so the 2D labs never pay for it, add every module it imports to
+the `gh-pages` patch list in TUTORIAL.md §8, and relax the self-test's
+Canvas 2D check for that lab only. The readout-based checks survive the swap
+unchanged, as they did in the other direction. Worth a one-slide spike first:
+port the existing `3d` lab and compare, since it already has 20 checks to gate
+against.
+
 Target once the conversion is done — the renderer becomes a leaf, not the base:
 
 ```
@@ -327,7 +416,8 @@ assets/
   lab-mount.js   stage + panel + wiring for a mode table  <- exists as of 2026-08-05
   draw2d.js      Canvas 2D: shapes, and ImageData for     <- Math 1 & 2, Physics 1,
                  the ray tracer                              most of Physics 2 & 3
-  draw3d.js      three.js                                 <- only if a 3D lab appears
+  draw3d.js      three.js                                 <- only if a 3D lab outgrows
+                                                             Canvas 2D (see above)
 ```
 
 `lab-mount.js` was not in the original sketch. It appeared when Physics 1's
@@ -491,9 +581,10 @@ end of each prep session.
   root shrinks from 74 characters to 15, so it nets −47. (Earlier drafts of this
   section worried it added ~14. It does; the root loses far more.)
 - **0 cloud-only files**, so nothing is dehydrated.
-- **No CDN dependency in the rendered decks.** Checked every external `src`/
-  `href` in `matrices.html` and `vectors.html`: MathJax and reveal.js are
-  vendored by Quarto. The only outbound URLs are two *content* links in
+- **No CDN dependency in the rendered decks.** *(Wrong about MathJax — it loads
+  from `cdn.jsdelivr.net` at runtime; see §3.11, found 2026-09-26.)* Checked
+  every external `src`/`href` in `matrices.html` and `vectors.html`: MathJax and
+  reveal.js are vendored by Quarto. The only outbound URLs are two *content* links in
   `vectors.qmd` — a PhET page and a YouTube video. They are clickable, not
   load-time, but they are the one thing in a lecture that still needs wifi.
 
@@ -638,6 +729,85 @@ Humber Polytechnic* in `institute:` and `index.html`, *Humber Polytechnic* in
 the footer. What is still open is the course half — `GAME 220 · Game Dynamics 1`
 in both the title and the footer, when the course is being called **Game
 Math 1**.
+
+### 3.11 Mobile Firefox: raw LaTeX and blank demos  *(open — reported 2026-09-26)*
+
+**Symptom.** On Firefox for Android, the live deck
+(`https://profumer.github.io/teaching/matrices.html`) shows the slides, but
+every equation is raw LaTeX and every lab is a blank gap.
+
+**Cause (found 2026-09-26): rotating the phone.** It breaks when switching
+between landscape and portrait. reveal.js 5.1's scroll view (active below
+`scrollActivationWidth: 435`) saves `slides.innerHTML` as a string on
+activate and restores it with `innerHTML =` on deactivate. That rebuild
+leaves each lab a dead copy (blank canvas, still `data-mounted`, so labs.js
+skipped it) and restores raw LaTeX if the string was saved before MathJax
+typeset. The menu's "Scroll View Mode" (`r`) takes the same path on desktop.
+**Fix (in `assets/labs.js`, not yet published):** track mounted labs in a
+`WeakSet` instead of trusting `data-mounted`, and a `MutationObserver` on
+`.reveal .slides` re-mounts the copies and runs `MathJax.typesetPromise` on
+any math still raw. The investigation notes below are kept for the record.
+
+**Ruled out so far (2026-09-26):**
+
+- **Hosting.** Every `assets/*.js` returns 200 with
+  `application/javascript` from GitHub Pages, and all modules are on
+  `gh-pages` — not the missing-module publish bug in TUTORIAL.md §8.
+- **The Firefox engine itself.** Desktop Firefox renders both math and labs,
+  at 1280×720 *and* at a 412 px phone width, where reveal.js 5.1 switches to
+  its scroll view (`scrollActivationWidth: 435`). A probe page (run against the
+local build, served over http) confirmed every
+  lab mounted, none had `lab-failed`, and every canvas had painted pixels. Chrome
+  at 412 px gives the same result.
+- **An old browser.** The phone runs **Firefox 156.0.1** (current), so
+  optional chaining, `??`, modules and MathJax 4 are all supported. The
+  "main suspect" below is ruled out; so is transpiling (step 6).
+- **Cache / add-ons.** It worked in a private tab, which first pointed at the
+  cache or an add-on. That was a red herring: the private tab simply had not
+  been rotated. See "Cause" above.
+- **JavaScript switched off.** With `javascript.enabled = false` the deck is a
+  blank white page — reveal hides slides until its own script runs. Slides are
+  visible on the phone, so JavaScript is running; only MathJax and the labs fail.
+
+**Main suspect: an old browser.** Both failing scripts need a modern engine,
+and reveal.js is the one written for older ones:
+
+- **MathJax** is MathJax 4, fetched at runtime from `cdn.jsdelivr.net`.
+- **The labs** use optional chaining `?.` (`lab-core.js`) and `??`
+  (`draw2d.js`), which need **Firefox ≥ 74** (March 2020). One syntax error in
+  the module graph means `labs.js` never runs, with nothing on screen.
+
+**Other candidates:** a content blocker (uBlock, NoScript, private DNS) or
+campus network filter blocking `cdn.jsdelivr.net` — explains the math but not
+the labs, which are same-origin; a non-standard build (Firefox Focus, an old
+F-Droid Fennec, an in-app browser view); a stale cached copy from the first
+publish, when the modules 404'd.
+
+**Next steps to investigate:**
+
+1. On the phone: **Settings → About Firefox** for the version.
+2. Same URL in Chrome on the same phone — if it works, it is the browser.
+3. Same URL on mobile data vs. Wi-Fi, and in a private tab (blockers, cache).
+4. Remote console: USB debugging on the phone, `about:debugging` in desktop
+   Firefox — the first error message should settle it.
+5. **Done (not yet published):** `assets/debug.js`, a classic script loaded from
+   `head.html` before `labs.js`, inert unless the URL has `?debug`. Open
+   `matrices.html?debug` on the phone: a panel at the bottom shows the UA,
+   script load failures and errors, and after 4 s and 12 s whether MathJax
+   loaded, how many equations were typeset, how many labs mounted and their
+   canvas sizes, and the network status of each script.
+6. If an old engine is confirmed: decide whether to support it (transpile the
+   labs, e.g. esbuild with a `firefox68` target) or show a "please update your
+   browser" note instead of a blank gap.
+
+**Related, and a real bug regardless: MathJax is *not* vendored.** §3.1's "No
+CDN dependency" bullet is wrong — Quarto's default loads
+`https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js` (line ~444 of the rendered
+`matrices.html`). That breaks the "never depend on a CDN" decision in §2: with no
+classroom Wi-Fi, every equation shows as raw LaTeX even on the lecture laptop.
+Fix: vendor MathJax into `assets/` and point `html-math-method` at the local
+copy, then re-check that no external `src` remains. Doing this also removes one
+of the candidates above.
 
 ---
 
@@ -813,6 +983,7 @@ pile. Roughly in the order they bite:
 | §3.2 | repo layout and URL | project repo vs `<user>.github.io` user site |
 | §3.10 | footer + deck titles | one wording decision, with the §3.4 titles |
 | §3.9 | prune unused figures | no decision really, just do it |
+| §3.11 | mobile Firefox shows raw LaTeX + blank labs | investigate on the phone first; vendoring MathJax is worth doing regardless (no-CDN rule) |
 
 **Settled since the last review:** §3.4 course naming — folder names are
 `math-1`, `physics-1`, … with no course code (§2); the leftover deck *title*
@@ -844,4 +1015,6 @@ Polytechnic rebrand is applied and rendered (§1).
 - **Math 1 content work.** Known outstanding, not itemised here — the `.qmd`
   decks are the working copy.
 - **Assignments as `.qmd`.** Publish the PDFs (§5).
-- **Re-vendoring any renderer.** See §2.1.
+- **Re-vendoring any renderer.** See §2.1. The 4×4 slides did not need one
+  (§1.4); *When to bring three.js back* in §2.1 lists the triggers — the first
+  likely one is a view/projection-matrix lab.

@@ -1,0 +1,107 @@
+---
+title: "Game Math 1"
+subtitle: "Matrix Inverse for 2D"
+institute: "Faculty of Media, Creative Arts, and Design, Humber Polytechnic"
+---
+## Matrix Inverse
+Why would you ever need to invert a matrix? It makes a transformation go the "other way"
+
+. . .
+
+If $T*S$ is a matrix that scales $x$ & $y$ by 2 then translates 2 units to the right.
+
+Then $(T*S)^{-1}$ translates 2 units to the left then scales $x$ & $y$ by 0.5 
+
+. . .
+
+<div class="lab-mount lab-short" data-lab="2d" data-stages="scale,translate"
+     data-kx="2" data-ky="2" data-dx="2" data-dy="0"
+     data-reorder="false" data-inverse="true"></div>
+
+
+## Transpose
+
+How to invert a rotation matrix? Just swap the rows and columns. This is called the transpose.
+
+If $R$ is a matrix that rotates $45^\circ$ anti-clockwise
+
+Then the inverse $R^{-1} = R^{T}$ rotates $45^\circ$ clockwise 
+
+. . .
+
+<div class="lab-mount" data-lab="2d" data-stages="rotate"
+     data-theta="45" data-inverse="transpose"></div>
+
+## Inverting anything else?
+
+Bad news, inverting anything more complicated takes more than a transpose. 
+
+We'll use this formula:
+
+::: {.big-math}
+$$A^{-1} = \frac{1}{\text{determinant}(A)} * \text{cofactor}(A)^T$$
+:::
+
+
+## Determinant
+If $A = \begin{pmatrix}
+a & d & g\\
+b & e & h\\
+c & f & i \end{pmatrix}$ then the determinant 
+$= a(ei - hf) - d(bi - hc) + g(bf -ec)$
+
+Have you fallen asleep looking at that? 
+
+. . .
+
+Try it with the matrix below that rotates $90 ^\circ$ then translates 2 units along $x$ and 3 units along $y$
+
+<div class="lab-mount" data-lab="det" data-a="0,-1,2,  1,0,3,   0,0,1"></div>
+
+. . . 
+
+Pro tip #1: The determinant is always 1 if your transformation doesn't change the scale.
+
+. . .
+
+Pro tip #2: It's actually quicker for us to use the same method with the bottom row instead!
+
+## Cofactor matrix
+If $A = \begin{pmatrix}
+a & d & g\\
+b & e & h\\
+c & f & i \end{pmatrix}$ then the Cofactor
+$= \begin{pmatrix}
+ei - hf & -(bi - hc) & bf - ec\\
+-(di - gf) & ai - gc & -(af - dc)\\
+dh - ge & -(ah - gb) & ae - db \end{pmatrix}$
+
+Have you fallen asleep again?
+
+. . .
+
+Try it with the matrix below that rotates $90 ^\circ$ then translates 2 units along $x$ and 3 units along $y$
+
+<div class="lab-mount" data-lab="cofactor" data-a="0,-1,2,  1,0,3,   0,0,1"></div>
+
+. . .
+
+Pro tip: The top left corner of the cofactor matrix is used for lighting calculations of squished and stretched objects
+
+## Transposing the Cofactor matrix
+Remember that transposing a matrix just turns every row into a column? 
+
+That fixes the cofactor matrix so the translation stuff is always on the right-most column.
+
+Try it with the cofactor matrix from the previous slide:
+
+<div class="lab-mount" data-lab="cofactor-transpose" data-a="0,-1,2,  1,0,3,   0,0,1"></div>
+
+## Putting it all together
+Now we are ready to invert!
+
+$$A^{-1} = \frac{1}{\text{determinant}(A)} * \text{cofactor}(A)^T$$
+
+<div class="lab-mount" data-lab="2d" data-stages="scale,rotate,translate"
+     data-theta="90" data-kx="2" data-ky="2" data-dx="-1" data-dy="3" data-view="4.5" data-cy="4"
+     data-reorder="false" data-inverse="true" data-inverse-steps="true" data-dots="y"></div>

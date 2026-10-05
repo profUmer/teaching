@@ -1,10 +1,13 @@
 project:
   render:
-    # Scoped to just matrices while vectors and motion aren't ready to
-    # publish yet. Switch back to "*.qmd" (or add them explicitly) when
-    # they're ready, then `quarto publish gh-pages` again to add them to
-    # the live site.
+    # Scoped to the decks ready to publish; vectors and motion aren't yet.
+    # Switch back to "*.qmd" (or add them explicitly) when they're ready,
+    # then `quarto publish gh-pages` again to add them to the live site.
+    # A deck NOT listed here renders without any of this file (no theme,
+    # footer, author, slides.css or labs) - even `quarto render x.qmd`.
     - matrices.qmd
+    - matrixInverse.qmd
+    - dualQuaternions.qmd
   # Tried listing assets/**, figs/** and index.html here as `resources:` to
   # get quarto publish to bundle files it can't trace through a recognised
   # reference (labs.js pulls in its sibling modules via plain JS `import`,
@@ -18,7 +21,8 @@ project:
   # patch the gh-pages branch directly - see TUTORIAL.md §8.
 
 author: "Umer Noor, PhD"
-
+date: today
+date-format: "[Demos built using Claude Code]"
 format:
   revealjs:
     theme: [default, assets/humber.scss]
