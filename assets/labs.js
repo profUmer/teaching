@@ -8,7 +8,7 @@
  *
  * This is the only module the decks load; it dispatches to transform-lab.js
  * (2D matrix transforms), transform-lab3d.js (the 4x4 versions), vector-lab.js (2D vector demos), motion-lab.js
- * (kinematics), matmul-lab.js (step-by-step 3x3 multiplication) or
+ * (kinematics), matmul-lab.js (step-by-step 3x3 or 4x4 multiplication) or
  * det-lab.js (a 3x3 determinant, one first-row element at a time, and the
  * cofactor matrix, one cell at a time, and its transpose, one row at a time)
  * or quat-lab.js (two reflections making a rotation, for the quaternion decks)
@@ -65,6 +65,13 @@ function optionsFrom(el) {
     const bLabels = (el.dataset.bsLabels || '').split(',');
     const cLabels = (el.dataset.csLabels || '').split(',');
     opts.bs = groups.map((b, i) => ({ b, bLabel: bLabels[i], cLabel: cLabels[i] }));
+  }
+  // A chain of square matrices multiplied right to left (mountChain):
+  // data-ms="T values;R values;S values" with data-ms-labels="T,R,S".
+  if (el.dataset.ms) {
+    const groups = el.dataset.ms.split(';').map((g) => g.split(',').map(Number));
+    const labels = (el.dataset.msLabels || '').split(',').map((s) => s.trim());
+    opts.ms = groups.map((m, i) => ({ m, label: labels[i] || String.fromCharCode(65 + i) }));
   }
   return opts;
 }
