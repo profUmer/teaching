@@ -123,12 +123,13 @@ Options, all optional:
 | `data-theta` | `planes` | starting rotation $\theta$ in degrees (default 60, at most 180); the planes start $\theta/2$ apart |
 | `data-d` | `parallel` | starting distance between the planes (default 1.5, at most 2.5); the point moves twice this |
 | `data-a` | `det` `cofactor` `cofactor-transpose` | the matrix $A$, 9 comma-separated numbers, row-major (default `3,2,1,1,4,2,2,1,5`, determinant 45) |
-| `data-a` | `matmul` | the left matrix $A$, 9 comma-separated numbers, row-major — always 3×3 |
-| `data-b` | `matmul` | one right factor $B$: 9 numbers for a 3×3 matrix, 3 for a single column vector, 6 for two columns side by side, and so on — always 3 rows |
+| `data-a` | `matmul` | the left matrix $A$, comma-separated, row-major — 9 numbers for 3×3, 16 for 4×4 |
+| `data-b` | `matmul` | one right factor $B$, with as many rows as $A$: 9 numbers for a 3×3 matrix, 3 for a single column vector, 6 for two columns side by side; 16 or 4 alongside a 4×4 $A$ |
 | `data-a-label` `data-b-label` `data-c-label` | `matmul` (with `data-b`) | captions for $A$, $B$ and the product (default `A`, `B`, `AB`) |
 | `data-order` | `matmul` (with `data-b`) | `row` (default) fills the product row by row, as a hand-worked matrix product is usually written; `col` fills it column by column instead |
-| `data-bs` | `matmul` | several right-hand vectors instead of one $B$, semicolon-separated 3-number groups (`"2,1,1;2,1,0"`) — each gets its own $A \times b_i = c_i$ stacked underneath the last, all sharing one **Prev**/**Next**, which advances every $b_i$'s row together |
+| `data-bs` | `matmul` | several right-hand vectors instead of one $B$, semicolon-separated groups of 3 (or 4, for a 4×4 $A$) (`"2,1,1;2,1,0"`) — each gets its own $A \times b_i = c_i$ stacked underneath the last, all sharing one **Prev**/**Next**, which advances every $b_i$'s row together |
 | `data-bs-labels` `data-cs-labels` | `matmul` (with `data-bs`) | comma-separated captions for each $b_i$ and $c_i$, matched up by position |
+| `data-ms` `data-ms-labels` | `matmul` | a chain of square matrices instead of $A$ and $B$, semicolon-separated (`data-ms-labels="T,R,S"`), multiplied right to left: $R 	imes S = RS$ cell by cell, then $T 	imes RS = TRS$ stacked underneath, its $RS$ filling in as the first product does — the Model Matrix slide |
 | `data-indices` | `blades` | the indices typed in to start with (default `01123`) |
 
 Every slider's number is also a text box: click it to type an exact value

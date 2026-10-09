@@ -1,0 +1,128 @@
+---
+title: "Game Math 2"
+subtitle: "Matrices for 3D"
+institute: "Faculty of Media, Creative Arts, and Design, Humber Polytechnic"
+format:
+  revealjs:
+    footer: "Game Math 2, Umer Noor, PhD"
+---
+## Matrices
+A matrix is just a table of numbers. Here's an example from the wild:
+
+\begin{pmatrix} 
+3 & 0 & 0 & 4 \\ 
+0 & 3 & 0 & 5 \\
+0 & 0 & 1 & -1\\
+0 & 0 & 0 & 1
+\end{pmatrix}
+
+Why do game developers love them so much? They allow us to do useful things to positions and directions!
+
+
+## Scale Matrix in 3D
+
+You can make vectors bigger, smaller or point the other way with the scale matrix:
+
+$$\begin{pmatrix}
+scale_x & 0 & 0 & 0\\
+0 & scale_y & 0 & 0\\
+0 & 0 & scale_z & 0\\
+0 & 0 & 0 & 1 \end{pmatrix}$$
+
+<div class="lab-mount" data-lab="3d" data-stages="scale" data-kx="1.0" data-ky="1.0" data-kz="1.0" data-reorder="false"></div>
+
+
+
+## Translate Matrix in 3D
+
+You can move positions around using the translation matrix:
+
+\begin{pmatrix} 
+1 & 0 & 0 & \Delta x\\
+0 & 1 & 0 & \Delta y\\
+0 & 0 & 1 & \Delta z\\
+0 & 0 & 0 & 1
+ \end{pmatrix}
+
+<div class="lab-mount" data-lab="3d" data-stages="translate" data-dx="0" data-dy="0" data-dz="0" data-reorder="false"></div>
+
+## Rotation Matrix in 3D (pick your axis of rotation)
+$$R_x = \begin{pmatrix}
+1 & 0 & 0 & 0\\
+0 & \cos\theta & -\sin\theta & 0\\
+0 & \sin\theta & \cos\theta & 0\\
+0 & 0 & 0 & 1 \end{pmatrix}
+\quad
+R_y = \begin{pmatrix}
+\cos\theta & 0 & \sin\theta & 0\\
+0 & 1 & 0 & 0\\
+-\sin\theta & 0 & \cos\theta & 0\\
+0 & 0 & 0 & 1 \end{pmatrix}
+\quad
+R_z = \begin{pmatrix}
+\cos\theta & -\sin\theta & 0 & 0\\
+\sin\theta & \cos\theta & 0 & 0\\
+0 & 0 & 1 & 0\\
+0 & 0 & 0 & 1 \end{pmatrix}$$
+
+<div class="lab-mount" data-lab="3d" data-stages="rotate" data-axis="z" data-theta="0" data-view="3" data-reorder="false"></div>
+
+## Order Matters 
+Multiply matrices to combine transformations. But be careful, order matters!
+
+<div class="lab-mount" data-lab="3d" data-stages="scale, rotate, translate" data-axis="z" data-theta="45" data-kx="2" data-ky="2" data-kz="2" data-dx="2" data-dy="0" data-dz="0"></div>
+
+## Dumptruck Method
+
+:::: {.columns}
+
+::: {.column width="55%"}
+
+[Think of a row vector multiplying a column vector:]{.struc}
+
+$$\begin{pmatrix} 1 & 2 & 3 & 4 \end{pmatrix}
+\times
+\begin{pmatrix} 10\\20\\30\\40 \end{pmatrix}$$
+
+. . .
+
+$$= 1(10) + 2(20) + 3(30) + 4(40)$$
+
+. . .
+
+$$= 300$$
+
+:::
+
+::: {.column width="45%"}
+![](figs/dumptruck.svg){width="100%"}
+:::
+
+::::
+
+
+## Multiplying a Matrix by a Vector
+
+Use the dumptruck method four times for a 4x4 matrix multiplied with a 4D column vector:
+
+<div class="lab-mount" data-lab="matmul" data-a-label="S" data-b-label="v"
+     data-a="4,0,0,0,0,-3,0,0,0,0,2,0,0,0,0,1" data-b="2,1,3,1"></div>
+
+## The Model Matrix
+
+Just keep on dumptrucking to build the Model Matrix = $TRS$
+
+<div class="lab-mount" data-lab="matmul" data-ms-labels="T,R,S"
+     data-ms="1,0,0,4,0,1,0,5,0,0,1,-1,0,0,0,1;0,-1,0,0,1,0,0,0,0,0,1,0,0,0,0,1;2,0,0,0,0,3,0,0,0,0,1,0,0,0,0,1"></div>
+
+
+
+## Order Matters with Rotations too 
+
+<div class="lab-mount" data-lab="3d" data-stages="rotateX,rotateY" data-theta-x="90" data-theta-y="90" data-view="3" data-yaw="28"></div>
+
+## Directions Don't Translate
+Remember that $w$ is zero for a direction? That means it won't translate:
+<div class="lab-mount" data-lab="matmul" data-a-label="T"
+     data-a="1,0,0,3,0,1,0,-1,0,0,1,2,0,0,0,1"
+     data-bs="2,1,1,1;2,1,1,0" data-bs-labels="P,D" data-cs-labels="TP,TD"></div>

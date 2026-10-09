@@ -8,6 +8,7 @@ project:
     - matrices.qmd
     - matrixInverse.qmd
     - dualQuaternions.qmd
+    - matricesIn3d.qmd
   # Tried listing assets/**, figs/** and index.html here as `resources:` to
   # get quarto publish to bundle files it can't trace through a recognised
   # reference (labs.js pulls in its sibling modules via plain JS `import`,
