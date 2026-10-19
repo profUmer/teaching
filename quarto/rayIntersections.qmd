@@ -1,0 +1,34 @@
+---
+title: "Game Physics 3"
+subtitle: "Ray Intersections"
+institute: "Faculty of Media, Creative Arts, and Design, Humber Polytechnic"
+format:
+  revealjs:
+    footer: "Game Physics 3, Umer Noor, PhD"
+---
+## Rays
+A ray is just a straight line with a starting position $\vec{S}$ and a direction $\vec{D}$.
+
+You can walk along the ray using the parameter $t$, which gives us the ray equation:
+
+$$ \text{Position on Ray} = \vec{S} + t\vec{D}$$
+
+## Ray-Sphere intersection
+For a ray with start position $\vec{S}$ and direction $\vec{D}$ and a sphere with centre position $\vec{C}$ and radius $r$:
+
+$$a = \vec{D}^2$$
+$$b = 2 \vec{D} \cdot (\vec{S} - \vec{C})$$
+$$c = (\vec{S} - \vec{C})^2 - r^2$$
+    
+Determine the number of intersections by using the discriminant $b^2 - 4ac$
+
+if < 0 then no intersection, if = 0 then one intersection, if > 0 then two intersections
+
+Finally find $t$ using the quadratic formula:
+
+$$ t = \frac{-b \pm sqrt(\text{discriminant})}{2a}$$
+
+## Ray-Sphere demo
+
+<div class="lab-mount" data-lab="ray-sphere"
+     data-start="0,0,0" data-dir="1,0,0" data-centre="5,0,0" data-radius="1"></div>

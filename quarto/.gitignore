@@ -9,12 +9,14 @@ motion.html
 matrixInverse.html
 dualQuaternions.html
 matricesIn3d.html
+rayIntersections.html
 matrices_files/
 vectors_files/
 motion_files/
 matrixInverse_files/
 dualQuaternions_files/
 matricesIn3d_files/
+rayIntersections_files/
 
 # Bundle built by tools/make-deploy.ps1 for itch.io / manual upload
 _deploy/

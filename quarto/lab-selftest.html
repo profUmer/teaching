@@ -67,6 +67,9 @@
   <div class="lab-mount" id="t-parallel" data-lab="parallel" data-d="1.5"></div>
   <!-- Math 2, dual quaternions: DQ Candy Crush on the slide's four terms. -->
   <div class="lab-mount" id="t-blades" data-lab="blades" data-indices="01123"></div>
+  <!-- Physics 3, ray intersections: the ray-sphere quadratic. -->
+  <div class="lab-mount" id="t-ray" data-lab="ray-sphere"
+       data-start="0,0,0" data-dir="1,0,0" data-centre="5,0,0" data-radius="1"></div>
 </div>
 
 <script type="module">
@@ -199,7 +202,7 @@ async function waitUntil(fn, timeout = 4000) {
 }
 
 const ready = () => waitUntil(() =>
-  document.querySelectorAll('.rig canvas').length === 13
+  document.querySelectorAll('.rig canvas').length === 14
   && document.querySelectorAll('#t-reflect .lab-value-row').length > 0
   && document.querySelectorAll('#t-accel .lab-value-row').length > 0
   && document.querySelector('#t-planes canvas')?.dataset.p2
@@ -209,7 +212,8 @@ const ready = () => waitUntil(() =>
   && matrixCells('t-3d-trs').length === 16
   && document.querySelectorAll('#t-matmul .lab-matrix-grid').length === 3
   && document.querySelectorAll('#t-matvec .lab-matrix-grid').length === 6
-  && document.querySelectorAll('#t-blades .bl-tile').length > 0);
+  && document.querySelectorAll('#t-blades .bl-tile').length > 0
+  && document.querySelectorAll('#t-ray .lab-value-row').length === 4);
 
 /* ------------------------------------------------------------------ tests --- */
 
@@ -228,7 +232,7 @@ async function run() {
      context, so this stays as a guard against anything reintroducing one.
      See PLAN.md 2.1. */
   for (const id of ['polar', 'add', 'dot', 'reflect', '2d',
-                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel']) {
+                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel', 'ray']) {
     const canvas = document.getElementById(`t-${id}`).querySelector('canvas');
     const kind = canvas.getContext('2d') ? 'canvas2d' : 'webgl';
     record(kind === 'canvas2d', `${id.padEnd(8)} drawn by Canvas 2D`, kind, 'canvas2d');
@@ -657,6 +661,55 @@ async function run() {
     record(own.value === '132', 'blades  only indices 0-3 can be typed', own.value, '132');
     type('012301230');
     record(own.value.length === 7 && tiles().length === 7, 'blades  at most 7 indices', own.value, '0123012');
+  }
+
+  /* -- ray-sphere: a, b, c and the discriminant ---------------------------- */
+  /* S = 0, D = [1,0,0], C = [5,0,0], r = 1: a = 1, b = 2(-5) = -10,
+     c = 25 - 1 = 24, b^2 - 4ac = 100 - 96 = 4 - two hits, at t = 4 and 6. */
+  {
+    const v = (key) => num(rowValue('t-ray', key));
+    const disc = () => document.getElementById('t-ray').dataset.disc;
+    near('ray  a = D.D', v('a ='), 1);
+    near('ray  b = 2 D.(S - C)', v('b ='), -10);
+    near('ray  c = (S - C)^2 - r^2', v('c ='), 24);
+    near('ray  discriminant', v('discriminant'), 4);
+    record(disc() === 'pos', 'ray  discriminant > 0 shows as positive', disc(), 'pos');
+
+    // lift the sphere 1 in y: S - C = [-5,-1,0], c = 26 - 1 = 25, 100 - 100 = 0
+    setSlider('t-ray', 'Cy', 1);
+    near('ray  tangent: discriminant 0', v('discriminant'), 0);
+    record(disc() === 'zero', 'ray  tangent shows as zero', disc(), 'zero');
+
+    // shrink it: c = 26 - 0.25 = 25.75, 100 - 103 = -3, a miss
+    typeValue('t-ray', 'r', '0.5');
+    near('ray  miss: c', v('c ='), 25.75);
+    near('ray  miss: discriminant -3', v('discriminant'), -3);
+    record(disc() === 'neg', 'ray  miss shows as negative', disc(), 'neg');
+
+    // a non-unit direction scales a by |D|^2 and b by |D|: D = [2,0,0],
+    // back on axis with r = 1: a = 4, b = -20, c = 24, 400 - 384 = 16
+    setSlider('t-ray', 'Cy', 0);
+    setSlider('t-ray', 'r', 1);
+    setSlider('t-ray', 'Dx', 2);
+    near('ray  D = [2,0,0]: a', v('a ='), 4);
+    near('ray  D = [2,0,0]: b', v('b ='), -20);
+    near('ray  D = [2,0,0]: discriminant', v('discriminant'), 16);
+
+    // all three axes count: S = [0,0,3] moves the ray off axis in z
+    setSlider('t-ray', 'Dx', 1);
+    setSlider('t-ray', 'Sz', 3);
+    near('ray  S = [0,0,3]: c = 25 + 9 - 1', v('c ='), 33);
+
+    // orbiting the 3D view is a camera move: the numbers must not change
+    const canvas = document.querySelector('#t-ray canvas');
+    const r = canvas.getBoundingClientRect();
+    const at = (fx) => ({ clientX: r.left + r.width * fx, clientY: r.top + r.height / 2 });
+    const base = { bubbles: true, cancelable: true, pointerId: 3, pointerType: 'mouse', isPrimary: true };
+    canvas.dispatchEvent(new PointerEvent('pointerdown', { ...base, ...at(0.3) }));
+    canvas.dispatchEvent(new PointerEvent('pointermove', { ...base, ...at(0.7) }));
+    canvas.dispatchEvent(new PointerEvent('pointerup',   { ...base, ...at(0.7) }));
+    await sleep(40);
+    near('ray  orbiting leaves c alone', v('c ='), 33);
   }
 
   /* -- summary ------------------------------------------------------------ */

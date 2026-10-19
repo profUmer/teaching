@@ -4,13 +4,32 @@ Migration of the LaTeX Beamer decks in `../matrices`, `../vectors` and
 `../Game Physics 1` to Quarto + reveal.js, so slides can carry live interactive
 demos instead of static EPS figures.
 
-Converted and working:
+Decks (as of 2026-10-09). "Live" means in `_quarto.yml`'s render list and on
+the `gh-pages` site:
 
-| deck | course | slides | source |
+| deck | course | slides | live |
 | --- | --- | --- | --- |
-| `matrices.qmd` | GAME 220 Game Dynamics 1 | 17 | `../matrices/main.tex` |
-| `vectors.qmd` | GAME 220 Game Dynamics 1 | 39 | `../vectors/main.tex` |
-| `motion.qmd` | GAME 105 Game Physics 1 | 18 | `../Game Physics 1/motion/main.tex` |
+| `matrices.qmd` — Matrices in 2D | Game Math 1 | 9 | yes |
+| `matrixInverse.qmd` — Matrix Inverse for 2D | Game Math 1 | 7 | yes |
+| `matricesIn3d.qmd` — Matrices for 3D | Game Math 2 | 10 | yes (2026-10-09) |
+| `dualQuaternions.qmd` — Dual Quaternions | Game Math 2 | 4 | yes |
+| `vectors.qmd` | Game Math 1 | 39 | no — untracked |
+| `motion.qmd` | GAME 105 Game Physics 1 | 18 | no — untracked |
+| `rayIntersections.qmd` — Ray Intersections | Game Physics 3 | 3 | no — in the render list, not yet published |
+
+**A deck must be in `_quarto.yml`'s `project: render:` list to render
+properly** — even `quarto render deck.qmd` on an unlisted deck ignores the
+whole project file and produces a bare HTML page (no reveal.js, theme, footer
+or labs), silently overwriting any good render. Add it to the list first.
+
+**Game Math 2 decks set their own footer** in front matter, overriding the
+global Game Math 1 one in `_quarto.yml`:
+
+```yaml
+format:
+  revealjs:
+    footer: "Game Math 2, Umer Noor, PhD"
+```
 
 The two courses share one `assets/` and one `_quarto.yml`; `motion.qmd`
 overrides only the footer in its own front matter. See [PLAN.md](PLAN.md) §4 for
@@ -78,13 +97,13 @@ A lab is a `<div>` in the `.qmd`; `assets/labs.js` finds it and mounts the demo:
      data-theta="60" data-dx="3" data-dy="0"></div>
 ```
 
-Fifteen kinds, set with `data-lab`:
+Sixteen kinds, set with `data-lab`:
 
 | `data-lab` | what it is | used in |
 | --- | --- | --- |
 | `2d` (default) | matrix transforms: two tracked vertices, a shape, composed 3×3 | matrices |
 | `3d` | the same in 3D: an extruded house, three tracked vertices, composed 4×4; drag the canvas to orbit the camera | matrices |
-| `matmul` | step through $A \times B$ one cell at a time, row of $A$ against column of $B$ | matrices |
+| `matmul` | step through $A \times B$ one cell at a time, row of $A$ against column of $B$ — 3×3 or 4×4, read from `data-a`; or a chain like $T \times R \times S$ with `data-ms` | matrices, matricesIn3d |
 | `det` | step through a 3×3 determinant along the first row: each Next adds a term, blocking out that element's row and column, with the next term's sign on the end; the last step adds the answer | matrixInverse |
 | `cofactor` | fill the cofactor matrix one cell at a time, row by row: block out that element's row and column, work out the 2×2 left over, flip the sign on the minus cells of the checkerboard | matrixInverse |
 | `cofactor-transpose` | the cofactor matrix of `data-a` beside its transpose, which fills one column per Next as each row turns into a column | matrixInverse |
@@ -97,6 +116,7 @@ Fifteen kinds, set with `data-lab`:
 | `planes` | two reflections make a rotation: a point mirrored in plane 1 (fixed horizontal), then plane 2 (both edge-on, sharing the out-of-screen axis), turns by twice the angle between them — why a quaternion carries $	heta/2$. One slider, *Angle between planes* (0–90°); θ/2 and θ are written on the diagram; drag the initial position; **Play** animates the first reflection, the second, then the θ arc. No grid, axes or readout | dualQuaternions |
 | `parallel` | the same with parallel planes: plane 1 and plane 2 both horizontal, the point (where it starts in `planes`) mirrored in one then the other slides straight up by twice the gap between them — the $t/2$ in a dual quaternion. One slider, *Distance between planes* (0–2.5); t/2 and t are written on the diagram; drag the initial position; **Play** animates the first reflection, the second, then the translation arrow | dualQuaternions |
 | `blades` | DQ Candy Crush: type up to 7 indices (0–3 only, no coefficient) and they become coloured tiles sitting low beside an $e$, as its subscript. Between each pair of neighbours is a button — **⇄** swaps them and flips the sign; once they match it becomes **✸**, which pops 11, 22 or 33 (they vanish) or 00 (the whole term is 0). Underneath is the term as it stands now, e.g. $-e_{032}$ | dualQuaternions |
+| `ray-sphere` | sliders for a ray's start $\vec{S}$ and direction $\vec{D}$ and a sphere's centre $\vec{C}$ and radius $r$, all 3D; reads out $a$, $b$, $c$ and the discriminant $b^2 - 4ac$, coloured by its sign (red < 0, amber = 0, green > 0). It stops there: solving for $t$ stays on the slide. Beside the numbers, a 3D view of the ray and the sphere (drag to orbit, scroll to zoom, **Reset view**): the ray solid for $t \ge 0$ and faint dashed for $t < 0$, which is why a sphere behind the start still gives a positive discriminant, and anything the sphere hides drawn dashed. Starts on a ray down the $x$-axis at a unit sphere 5 along it: $a = 1$, $b = -10$, $c = 24$, discriminant 4; $C_y = 1$ makes it a tangent | rayIntersections |
 
 Options, all optional:
 
@@ -131,6 +151,9 @@ Options, all optional:
 | `data-bs-labels` `data-cs-labels` | `matmul` (with `data-bs`) | comma-separated captions for each $b_i$ and $c_i$, matched up by position |
 | `data-ms` `data-ms-labels` | `matmul` | a chain of square matrices instead of $A$ and $B$, semicolon-separated (`data-ms-labels="T,R,S"`), multiplied right to left: $R 	imes S = RS$ cell by cell, then $T 	imes RS = TRS$ stacked underneath, its $RS$ filling in as the first product does — the Model Matrix slide |
 | `data-indices` | `blades` | the indices typed in to start with (default `01123`) |
+| `data-start` `data-dir` `data-centre` | `ray-sphere` | the ray's start $\vec{S}$, its direction $\vec{D}$ and the sphere's centre $\vec{C}$, 3 comma-separated numbers each (defaults `0,0,0`, `1,0,0`, `5,0,0`) |
+| `data-radius` | `ray-sphere` | the sphere's radius $r$ (default 1) |
+| `data-view` `data-yaw` `data-pitch` | `ray-sphere` | starting zoom (half-height, default 3.5) and camera angles (default −32, 22); the camera orbits the point halfway between the starting $\vec{S}$ and $\vec{C}$ |
 
 Every slider's number is also a text box: click it to type an exact value
 (Enter or click away to commit, Escape to cancel), rather than only dragging
@@ -175,8 +198,13 @@ dumptruck slide. It is the one lab with no canvas at all — just numbers and
 which of them combine — so it reuses the matrix panel's bracket-and-font
 styling directly rather than drawing anything.
 
-Two shapes. `data-a` + `data-b` is one $A \times B$, run cell by cell (nine
-steps for a 3×3 $B$ — the $TS$ slide). `data-a` + `data-bs` is $A$ against
+Three shapes, each 3×3 or 4×4 — the size is read from how many numbers
+`data-a` has (9 or 16), and $B$ must have that many rows. `data-a` + `data-b`
+is one $A \times B$, run cell by cell (nine steps for a 3×3 $B$ — the $TS$
+slide). `data-ms` is a chain worked right to left, each product its own
+equation stacked under the last — $R \times S = RS$, then $T \times RS = TRS$,
+whose $RS$ fills in as the first product does (32 Nexts for three 4×4s — the
+Model Matrix slide in `matricesIn3d`). `data-a` + `data-bs` is $A$ against
 several vectors *at once*, one $A \times b_i = c_i$ stacked above the next
 rather than side by side, all three steps (one per row of $A$) filling every
 $b_i$'s row together — the point-vs-direction slide, so **Next** builds
@@ -187,7 +215,7 @@ demos or one finishing before the other starts.
 Code layout: `lab-core.js` (dragging, run loop, panels) and `draw2d.js` (the
 Canvas 2D drawing) → `lab-mount.js` (stage + panel + wiring, shared by every
 draggable lab) → `transform-lab.js`, `transform-lab3d.js`, `vector-lab.js` and
-`motion-lab.js` (the labs themselves), plus `matmul-lab.js`, `det-lab.js` and `blade-lab.js` (DOM only, no stage) → `labs.js` (the
+`motion-lab.js` (the labs themselves), plus `matmul-lab.js`, `det-lab.js` and `blade-lab.js` (DOM only, no stage), and `ray-lab.js` (its own stage and orbit camera, like `transform-lab3d.js`) → `labs.js` (the
 single entry point the decks load, which dispatches on `data-lab`).
 
 Every lab but `matmul` draws with Canvas 2D — immediate mode, the same model as
@@ -201,7 +229,7 @@ Two helper pages, both needing `serve.cmd` like the decks:
 - <http://localhost:8000/lab-selftest.html> — drives each lab with synthetic
   pointer drags and slider moves and checks the readouts against hand-worked
   values, and confirms each lab was drawn by the renderer it should be.
-  Expect `all 129 checks passed`. Run it after touching `assets/*.js`.
+  Expect `all 147 checks passed`. Run it after touching `assets/*.js`.
 
 ## Figures
 

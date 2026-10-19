@@ -315,7 +315,7 @@ Two levels, and it is worth doing both after any change to `assets/*.js`.
 <http://localhost:8000/lab-selftest.html>. It mounts every lab, synthesises
 real pointer drags and slider moves, reads the numbers back out of the panels,
 and compares them against values worked out by hand. You want
-`all 129 checks passed` in green at the top. This covers what a screenshot
+`all 147 checks passed` in green at the top. This covers what a screenshot
 cannot: that a handle can be grabbed, that dragging updates the readout, and
 that the arithmetic is right at more than one position. It also asserts each
 lab was drawn by Canvas 2D, since the readouts alone cannot tell you that.
@@ -440,6 +440,39 @@ quarto publish gh-pages
 That renders, pushes the output to a `gh-pages` branch, and turns Pages on. The
 result is `https://<user>.github.io/teaching/`. Republishing later is just
 `quarto publish gh-pages` again.
+
+> **Update 2026-10-09: `quarto publish gh-pages` no longer works here.** It
+> stops with `ERROR: The specified path (...\quarto) is not a website,
+> manuscript or book project so cannot be published.` Decks have since been
+> published by committing the rendered files straight onto `gh-pages` from a
+> worktree — the same move as the fix further down, used for the whole job:
+>
+> ```powershell
+> # in Slides\quarto - the deck must be in _quarto.yml's render list first
+> quarto render matricesIn3d.qmd
+>
+> git -C .. fetch origin
+> git -C .. worktree add C:\gwt gh-pages
+> Copy-Item matricesIn3d.html, index.html C:\gwt\ -Force
+> Copy-Item matricesIn3d_files C:\gwt\ -Recurse -Force   # new deck only
+> Copy-Item assets\*.js, assets\slides.css C:\gwt\assets\ -Force
+> git -C C:\gwt add -A
+> git -C C:\gwt commit -m "Publish the matrices for 3D deck"
+> git -C C:\gwt push origin gh-pages
+> git -C .. worktree remove --force C:\gwt
+> ```
+>
+> Any `figs/` a deck uses must be on `gh-pages` too. Most `assets/` files
+> differ from `gh-pages` only in line endings (CRLF vs LF), which git ignores,
+> so copying all of them is harmless. Then verify as below. If `worktree remove`
+> asks *"Deletion of directory '.git/worktrees/gwt/logs' failed. Should I try
+> again?"*, OneDrive is holding a lock: answer **y** once more, or **n** and
+> then `git worktree prune`. If `.git\worktrees\gwt` is still there after that,
+> delete it by hand.
+>
+> Claude Code's auto mode blocks this as a production deploy, and that block
+> is kept on purpose: Claude prepares the render and the commands, and you run
+> the deploy.
 
 The repo and folder names deliberately carry **no course code** — codes get
 renumbered, and both end up in URLs already handed to students. The code belongs
@@ -624,6 +657,9 @@ Two errors found in the old sources while converting, both still in the `.tex`:
 | Changed CSS, nothing happened | browser cache | hard reload, `Ctrl+Shift+R` |
 | PDF export came out one blank page | intermittent Chrome print race | just retry; it succeeds on the next attempt |
 | Raw HTML laid out wrong | inside a `:::` div pandoc parses it as Markdown and wraps every `<img>` in a `<p>` | put it in a ```` ```{=html} ```` block instead |
+| Deck renders as a plain web page — no slides, theme, footer or labs | the deck is not in `_quarto.yml`'s `project: render:` list, so the project file is ignored | add it to the list, then re-render |
+| `quarto publish gh-pages`: "is not a website, manuscript or book project" | this folder is a bare default project | publish through a `gh-pages` worktree (§8) |
+| `git worktree remove`: "Deletion of directory ... failed. Should I try again?" | OneDrive is locking files in `.git` | **y** once more; else **n**, `git worktree prune`, and delete `.git\worktrees\gwt` |
 | Boxes (▯) instead of arrows/hats in a lab readout | combining marks (U+20D7, U+0302) are missing from the UI font | spell it out — `N / |N|` rather than `N̂` |
 
 One harmless error appears in the browser console on every deck:
