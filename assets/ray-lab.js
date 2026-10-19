@@ -32,8 +32,8 @@
  * (D_y) changes nothing, since only the part of D across the axis counts.
  * lab-selftest.html pins these.
  *
- * The 3D view is Canvas 2D with a hand-written orbit camera, like
- * transform-lab3d.js (PLAN.md 2.1): drag to orbit, scroll to zoom. The ray is
+ * The 3D view is Canvas 2D with an orbit camera (orbit3d.js, shared with
+ * the cross product lab; PLAN.md 2.1): drag to orbit, scroll to zoom. The ray is
  * drawn solid for t >= 0 and as a faint dashed line for t < 0, behind the
  * start - the quadratic counts hits on that half too, which is why a shape
  * behind the ray still gives a positive discriminant. Anything the shape
@@ -44,7 +44,8 @@
  */
 
 import { C, slider, button, valuePanel, fmt } from './lab-core.js';
-import { makeStage2D, stroke, dashed, arrow, disc, fillShape, label, css } from './draw2d.js';
+import { stroke, dashed, arrow, disc, fillShape, label, css } from './draw2d.js';
+import { makeOrbitView } from './orbit3d.js';
 
 const DEFAULTS = {
   start: [0, 0, 0],
@@ -67,8 +68,6 @@ const one = (v) => v.toFixed(1);
 const V = (s) => `<span class="ray-vec${s.length > 1 ? ' ray-wide' : ''}">${s}</span>`;
 const H = (s) => `<span class="ray-hat">${s}</span>`;
 
-const rad = (d) => (d * Math.PI) / 180;
-const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
 const sub = (p, q) => [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
 const add = (p, q) => [p[0] + q[0], p[1] + q[1], p[2] + q[2]];
@@ -237,7 +236,6 @@ export function mountRayLab(el, opts = {}) {
 
 const RAY = 0x8d1b1b;      // the deck's dark red: the ray and D
 const BALL = C.accentB;    // the sphere or cylinder
-const AXIS_COLOUR = { x: C.basisX, y: C.basisY, z: C.result };
 
 /* Two unit vectors perpendicular to n and to each other - the plane of a
    ring around the cylinder's axis. */
@@ -249,49 +247,17 @@ function perpBasis(n) {
 }
 
 function makeScene(stageEl, st, opts, target) {
-  const yaw0 = opts.yaw ?? -32;
-  const pitch0 = opts.pitch ?? 22;
-  const view0 = opts.view ?? 3.5;
-
-  /* makeStage2D supplies the canvas, its sizing and devicePixelRatio
-     handling; its flat grid is not used - paint() lays down a floor. */
-  const stage = makeStage2D(stageEl, { view: view0 });
-  const { ctx, canvas } = stage;
-
-  const cam = { yaw: rad(yaw0), pitch: rad(pitch0), view: view0 };
   // The camera orbits `target`, halfway between the starting S and the
   // shape's centre, so the opening picture is framed on the ray and the shape
   // rather than on the origin. Fixed from then on: a target that followed the
   // sliders would make a moving shape look as if it were standing still.
-  const DIST = 45;   // eye distance from the target; far enough to stay outside any shape the sliders allow
+  // The eye sits 45 from it (orbit3d.js's default), far enough to stay
+  // outside any shape the sliders allow.
+  const view = makeOrbitView(stageEl, { yaw: opts.yaw, pitch: opts.pitch, view: opts.view, target }, paint);
+  const { ctx, xy, project } = view;
   const BOX = 12;    // the ray and the cylinder are drawn only inside this cube - both are infinite
   const GRID = 10;   // floor half-width, matching the sliders' range
-  const LIFT = 0.2;  // origin offset below centre, as a fraction of half-height
-
-  /* --- camera -------------------------------------------------------------- */
-  /* An orbit camera, as in transform-lab3d.js: turn the world by yaw about y,
-     tip it by pitch about x, then divide by depth. `right`, `up` and `back`
-     are the camera's axes in world space (the rows of that rotation), so the
-     eye sits at target + DIST * back. */
-  let axes = null;
-  function basis() {
-    const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
-    const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-    axes = {
-      right: [cy, 0, sy],
-      up: [sp * sy, cp, -sp * cy],
-      back: [-cp * sy, sp, cp * cy],
-    };
-    axes.eye = add(target, scale(axes.back, DIST));
-  }
-
-  // -> [screen x, screen y, perspective scale at that depth]
-  function project(p) {
-    const q = sub(p, target);
-    const k = DIST / Math.max(DIST - dot(q, axes.back), 0.5);
-    return [dot(q, axes.right) * k, dot(q, axes.up) * k, k];
-  }
-  const xy = (p) => project(p).slice(0, 2);
+  let axes = null;   // the camera's axes and eye for this frame (orbit3d.js)
 
   /* Where the line P + tD is inside the cube |x|, |y|, |z| <= BOX - the slab
      test. null if D is zero or the line misses the cube. */
@@ -390,36 +356,6 @@ function makeScene(stageEl, st, opts, target) {
   }
 
   /* --- drawing ------------------------------------------------------------- */
-
-  /* A y-up transform in view units centred on the canvas, as in
-     transform-lab3d.js. */
-  function begin() {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const k = canvas.height / (2 * cam.view);
-    ctx.setTransform(k, 0, 0, -k, canvas.width / 2, canvas.height * (0.5 + LIFT / 2));
-  }
-
-  function floor(W) {
-    const seg = (a, b, width) => stroke(ctx, [xy(a), xy(b)], width);
-    ctx.strokeStyle = css(C.grid);
-    for (let i = -GRID; i <= GRID; i++) {
-      seg([i, 0, -GRID], [i, 0, GRID], W.grid);
-      seg([-GRID, 0, i], [GRID, 0, i], W.grid);
-    }
-    // negative halves grey, positive halves in the axis colour, then a letter
-    for (const [a, e] of Object.entries({ x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] })) {
-      const l = a === 'y' ? GRID * 0.6 : GRID + 0.6;
-      if (a !== 'y') {
-        ctx.strokeStyle = css(C.axis);
-        seg(e.map((v) => -v * GRID), [0, 0, 0], W.axis);
-      }
-      ctx.strokeStyle = css(AXIS_COLOUR[a]);
-      seg([0, 0, 0], e.map((v) => v * l), W.axis * 1.3);
-      ctx.fillStyle = css(AXIS_COLOUR[a]);
-      label(ctx, xy(e.map((v) => v * (l + 0.5))), a, W.text, 'center');
-    }
-  }
 
   /* The sphere: its shadow, the far half of its equator seen through it, a
      translucent ball lit from the upper left, the near half, and r. */
@@ -551,19 +487,13 @@ function makeScene(stageEl, st, opts, target) {
   }
 
   function paint() {
-    if (!canvas.width || !canvas.height) return;
-    basis();
+    const W = view.begin();
+    axes = view.axes;
     prepare();
-    begin();
-    const v = cam.view;
-    const W = {
-      grid: 0.006 * v, axis: 0.011 * v, ray: 0.016 * v, arrow: 0.028 * v, thin: 0.009 * v,
-      dot: 0.03 * v, text: 0.105 * v, dash: 0.035 * v, hint: 0.075 * v,
-    };
     const { S, D, r } = st;
     const cylinder = st.kind === 'cylinder';
 
-    floor(W);
+    view.floor(W, GRID);
 
     // the sphere's shadow on the floor, and dashed stalks down to it from the
     // shape's points and S, so their heights can be read
@@ -627,60 +557,10 @@ function makeScene(stageEl, st, opts, target) {
       label(ctx, xy(along(S, D, 0.5)), 'D', W.text, 'center', W.text * 0.8, true);
     }
 
-    ctx.fillStyle = '#9aa3ab';
-    const halfW = v * (canvas.width / canvas.height);
-    const top = v * (1 + LIFT) - 0.1 * v;
-    label(ctx, [-halfW + 0.1 * v, top], 'drag to orbit · scroll to zoom', W.hint, 'left');
+    view.corner(W, 'drag to orbit · scroll to zoom');
     // why the discriminant is greyed out, when it is (see update())
-    if (st.note) {
-      ctx.fillStyle = css(C.accentA);
-      label(ctx, [-halfW + 0.1 * v, top - W.hint * 1.8], st.note, W.hint * 1.15, 'left', 0, true);
-    }
+    if (st.note) view.corner(W, st.note, 1, C.accentA, W.hint * 1.15);
   }
 
-  /* --- orbit and zoom ------------------------------------------------------ */
-  /* Neither touches the readout: moving the camera changes the picture, not
-     the ray or the shape. */
-  let orbit = null;
-  canvas.addEventListener('pointerdown', (e) => {
-    orbit = { x: e.clientX, y: e.clientY, yaw: cam.yaw, pitch: cam.pitch };
-    try { canvas.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
-    canvas.classList.add('grabbing');
-    e.preventDefault();
-  });
-  canvas.addEventListener('pointermove', (e) => {
-    if (!orbit) return;
-    cam.yaw = orbit.yaw + rad((e.clientX - orbit.x) * 0.4);
-    cam.pitch = clamp(orbit.pitch + rad((e.clientY - orbit.y) * 0.4), rad(-85), rad(85));
-    paint();
-    e.preventDefault();
-  });
-  const release = (e) => {
-    if (!orbit) return;
-    orbit = null;
-    canvas.classList.remove('grabbing');
-    if (e.pointerId !== undefined && canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-  };
-  canvas.addEventListener('pointerup', release);
-  canvas.addEventListener('pointercancel', release);
-
-  canvas.addEventListener('wheel', (e) => {
-    e.preventDefault();   // zoom the picture, not scroll the page
-    cam.view = clamp(cam.view * Math.exp(e.deltaY * 0.0015), 2, 14);
-    paint();
-  }, { passive: false });
-
-  function reset() {
-    cam.yaw = rad(yaw0);
-    cam.pitch = rad(pitch0);
-    cam.view = view0;
-    paint();
-  }
-
-  // Quasi-static, like the motion labs: repaint on a slider, a drag, or a
-  // resize (which is also how a slide becoming visible, or ?print-pdf, shows up).
-  new ResizeObserver(() => { if (stage.resize()) paint(); }).observe(stageEl);
-  stage.resize();
-
-  return { paint, reset };
+  return { paint: view.repaint, reset: view.reset };
 }

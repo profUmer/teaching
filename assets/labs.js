@@ -14,7 +14,8 @@
  * or quat-lab.js (two reflections making a rotation, for the quaternion decks)
  * or blade-lab.js (simplifying a product of basis vectors like e01123)
  * or ray-lab.js (the ray-sphere and ray-cylinder quadratics' a, b, c and
- * discriminant, beside a 3D view). Keeping
+ * discriminant, beside a 3D view) or cross-lab.js (A x B, worked out and
+ * drawn in 3D). Keeping
  * one entry point means one scan of the document and no chance of two
  * modules both claiming the same div.
  */
@@ -28,6 +29,7 @@ import { mountDetLab, mountCofactorLab, mountCofactorTransposeLab } from './det-
 import { mountQuatLab } from './quat-lab.js';
 import { mountBladeLab } from './blade-lab.js';
 import { mountRayLab } from './ray-lab.js';
+import { mountCrossLab } from './cross-lab.js';
 
 const VECTOR_MODES = new Set(['polar', 'add', 'dot', 'reflect']);
 const MOTION_MODES = new Set(['motion', 'accel']);
@@ -62,8 +64,9 @@ function optionsFrom(el) {
   if (el.dataset.indices) opts.indices = el.dataset.indices;
   // ray-sphere / ray-cylinder: 3-vectors and a radius. data-dir, not data-d:
   // that is already the parallel lab's distance, parsed as one number above.
-  // data-end-a / data-end-b, not data-a / data-b, which are matmul's matrices.
-  for (const key of ['start', 'dir', 'centre', 'endA', 'endB']) {
+  // data-end-a / data-end-b, not data-a / data-b, which are matmul's matrices -
+  // and for the same reason the cross product's vectors are data-vec-a / -b.
+  for (const key of ['start', 'dir', 'centre', 'endA', 'endB', 'vecA', 'vecB']) {
     if (el.dataset[key]) opts[key] = el.dataset[key].split(',').map(Number);
   }
   if (el.dataset.radius !== undefined) opts.radius = parseFloat(el.dataset.radius);
@@ -108,6 +111,7 @@ function boot() {
       else if (kind === 'blades') mountBladeLab(el, opts);
       else if (kind === 'ray-sphere') mountRayLab(el, { ...opts, shape: 'sphere' });
       else if (kind === 'ray-cylinder') mountRayLab(el, { ...opts, shape: 'cylinder' });
+      else if (kind === 'cross') mountCrossLab(el, opts);
       else if (kind === 'matmul') mountMatmulLab(el, opts);
       else if (kind === 'det') mountDetLab(el, opts);
       else if (kind === 'cofactor') mountCofactorLab(el, opts);

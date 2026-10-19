@@ -403,6 +403,26 @@
 }
 /* over two letters, as \overrightarrow{AS}: the same arrow, stretched */
 .ray-vec.ray-wide::after { transform: scaleX(2.1); }
+/* cross-lab.js: the ray labs' layout (it carries .lab-ray too), with its own
+   readout - the result, then each component worked out under its formula.
+   A fixed width, sized for the widest numbers the sliders allow, so the 3D
+   view beside it never resizes as they change. */
+.cross-out { width: 21.5em; }
+/* three slider rows, not four: the view gets the height back */
+.reveal .lab-cross .lab-stage { height: 410px; }
+.cross-result { font-size: 1.1em; font-weight: 600; white-space: nowrap; }
+.cross-vector { font-family: var(--r-code-font, monospace); color: #1d7a4c; }
+.cross-working { display: grid; grid-template-columns: auto 1fr; column-gap: 0.5em; row-gap: 0.1em; }
+.cross-name { font-weight: 600; }
+.cross-numbers {
+  grid-column: 2;
+  margin-bottom: 0.45em;
+  font-family: var(--r-code-font, monospace);
+  font-size: 0.9em;
+  color: #55606b;
+  white-space: nowrap;
+}
+
 /* \widehat{AB}: a caret stretched across both letters */
 .ray-hat { position: relative; display: inline-block; font-style: italic; }
 .ray-hat::after {
