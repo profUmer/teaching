@@ -357,11 +357,13 @@
 .det-out { color: #c4c9ce; background: rgba(0, 0, 0, 0.05); border-radius: 4px; text-decoration: line-through; }
 
 /* ------------------------------------------------------- ray-sphere --- */
-/* ray-lab.js: three columns of sliders (S, D, then C and r) above a row
-   holding the 3D view and the a / b / c / discriminant readout. */
+/* ray-lab.js: a column of sliders per vector (S, D, then C and r for the
+   sphere; A, then B and r for the cylinder) above a row holding the 3D view
+   and the a / b / c / discriminant readout. */
 .lab-ray { display: block; width: 100%; font-size: 0.66em; }
 .lab-ray i { font-style: italic; }
-.ray-inputs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.6rem; margin-top: 0.3rem; }
+.ray-inputs { display: grid; grid-template-columns: repeat(var(--ray-cols, 3), minmax(0, 1fr)); gap: 1.6rem; margin-top: 0.3rem; }
+.lab-ray-cylinder .ray-inputs { gap: 1.1rem; }
 .lab-ray .lab-controls { gap: 0.25rem; }
 .ray-group-title { font-weight: 600; color: #8d1b1b; margin-bottom: 0.2rem; white-space: nowrap; }
 .lab-ray .lab-slider { grid-template-columns: 2.2em minmax(0, 1fr) 3.4em; }
@@ -372,6 +374,9 @@
 .ray-out { display: flex; flex-direction: column; align-items: stretch; gap: 0.8rem; }
 .ray-out .lab-buttons { justify-content: flex-end; }
 .lab-ray .lab-values { font-size: 1.3em; max-width: none; gap: 0.3rem; }
+/* the cylinder's formulas are about twice as long: smaller, so the 3D view
+   keeps most of the row */
+.lab-ray-cylinder .lab-values { font-size: 1.15em; }
 .lab-ray .lab-value-key { color: #1c1f23; }
 .lab-ray .lab-value-row { gap: 1.5rem; }
 /* A fixed width, so a longer number cannot widen the readout column and
@@ -383,6 +388,8 @@
 .ray-disc.ray-neg .lab-value-num { color: #c0392b; }
 .ray-disc.ray-zero .lab-value-num { color: #a87d00; }
 .ray-disc.ray-pos .lab-value-num { color: #1d7a4c; }
+/* a = 0 or A = B: the quadratic formula does not apply (ray-lab.js) */
+.ray-disc.ray-none .lab-value-num { color: #9aa3ab; }
 /* \vec drawn in CSS: a small arrow centred over the letter */
 .ray-vec { position: relative; display: inline-block; font-style: italic; }
 .ray-vec::after {
@@ -393,6 +400,20 @@
   font-size: 0.7em;
   font-style: normal;
   line-height: 1;
+}
+/* over two letters, as \overrightarrow{AS}: the same arrow, stretched */
+.ray-vec.ray-wide::after { transform: scaleX(2.1); }
+/* \widehat{AB}: a caret stretched across both letters */
+.ray-hat { position: relative; display: inline-block; font-style: italic; }
+.ray-hat::after {
+  content: "^";
+  position: absolute;
+  left: 0; right: 0; top: -0.5em;
+  text-align: center;
+  font-size: 0.8em;
+  font-style: normal;
+  line-height: 1;
+  transform: scaleX(2.4);
 }
 
 /* ------------------------------------------------ basis-vector candy crush */
