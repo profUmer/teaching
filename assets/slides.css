@@ -529,6 +529,23 @@
 .lab-value-row.is-key .lab-value-key,
 .lab-value-row.is-key .lab-value-num { color: #8d1b1b; }
 
+/* bullet-lab.js: slider names are phrases ("Bullets per ring"), not one
+   symbol, so they get a wide upright column; the readout is a formula per
+   row, so its value goes under its name and may wrap. */
+.lab-bullets .lab-slider { grid-template-columns: 8.5em minmax(0, 1fr) 3.4em; }
+.lab-bullets .lab-slider-name { font-style: normal; }
+.lab-bullets .lab-values { font-size: 1.15em; gap: 0.4rem; max-width: none; }
+.lab-bullets .lab-value-row { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.lab-bullets .lab-value-num { text-align: left; white-space: normal; }
+.lab-bullets .lab-stage { background: #000; border-color: #000; }
+/* the box takes the arrow keys while focused, so show when it has them */
+.lab-bullets .lab-stage { cursor: pointer; }
+.lab-bullets .lab-stage:focus { outline: 3px solid #8d1b1b; outline-offset: 2px; }
+/* composite's pattern buttons: filled while that pattern is in the box */
+.bl-parts { gap: 0.4rem; }
+.bl-parts .lab-button.is-on { background: #8d1b1b; color: #fff; }
+.bl-theta { font-family: Georgia, 'Times New Roman', serif; }
+
 /* Narrow slides (or a projector at 4:3) - stack instead of squeezing. */
 @media (max-aspect-ratio: 5/4) {
   .lab { grid-template-columns: minmax(0, 1fr); }

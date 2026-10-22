@@ -15,7 +15,8 @@
  * or blade-lab.js (simplifying a product of basis vectors like e01123)
  * or ray-lab.js (the ray-sphere and ray-cylinder quadratics' a, b, c and
  * discriminant, beside a 3D view) or cross-lab.js (A x B, worked out and
- * drawn in 3D). Keeping
+ * drawn in 3D) or bullet-lab.js (bullet hell patterns and a heart to dodge
+ * them, which time-steps rather than recomputing on a drag). Keeping
  * one entry point means one scan of the document and no chance of two
  * modules both claiming the same div.
  */
@@ -30,13 +31,14 @@ import { mountQuatLab } from './quat-lab.js';
 import { mountBladeLab } from './blade-lab.js';
 import { mountRayLab } from './ray-lab.js';
 import { mountCrossLab } from './cross-lab.js';
+import { mountBulletLab } from './bullet-lab.js';
 
 const VECTOR_MODES = new Set(['polar', 'add', 'dot', 'reflect']);
 const MOTION_MODES = new Set(['motion', 'accel']);
 const QUAT_MODES = new Set(['planes', 'parallel']);
 
 const NUMERIC = ['view', 'cx', 'cy', 'step', 'dp', 'theta', 'kx', 'ky', 'dx', 'dy', 't',
-                 'kz', 'dz', 'thetaX', 'thetaY', 'thetaZ', 'yaw', 'pitch', 'd'];
+                 'kz', 'dz', 'thetaX', 'thetaY', 'thetaZ', 'yaw', 'pitch', 'd', 'heartX'];
 
 function optionsFrom(el) {
   const opts = {};
@@ -62,6 +64,7 @@ function optionsFrom(el) {
   if (el.dataset.cLabel) opts.cLabel = el.dataset.cLabel;
   if (el.dataset.order) opts.order = el.dataset.order;
   if (el.dataset.indices) opts.indices = el.dataset.indices;
+  if (el.dataset.readout === 'true') opts.readout = true;
   // ray-sphere / ray-cylinder: 3-vectors and a radius. data-dir, not data-d:
   // that is already the parallel lab's distance, parsed as one number above.
   // data-end-a / data-end-b, not data-a / data-b, which are matmul's matrices -
@@ -112,6 +115,7 @@ function boot() {
       else if (kind === 'ray-sphere') mountRayLab(el, { ...opts, shape: 'sphere' });
       else if (kind === 'ray-cylinder') mountRayLab(el, { ...opts, shape: 'cylinder' });
       else if (kind === 'cross') mountCrossLab(el, opts);
+      else if (kind === 'bullets') mountBulletLab(el, { ...opts, pattern: el.dataset.pattern });
       else if (kind === 'matmul') mountMatmulLab(el, opts);
       else if (kind === 'det') mountDetLab(el, opts);
       else if (kind === 'cofactor') mountCofactorLab(el, opts);
