@@ -15,7 +15,8 @@ the `gh-pages` site:
 | `dualQuaternions.qmd` — Dual Quaternions | Game Math 2 | 4 | yes |
 | `vectors.qmd` | Game Math 1 | 39 | no — untracked |
 | `motion.qmd` | GAME 105 Game Physics 1 | 18 | no — untracked |
-| `rayIntersections.qmd` — Ray Intersections | Game Physics 3 | 3 | no — in the render list, not yet published |
+| `rayIntersections.qmd` — Ray Intersections | Game Physics 3 | 6 | yes (2026-10-19) |
+| `vectorOperations.qmd` — Vector Operations | Game Math 1 | 2 | no — in the render list, not yet published |
 
 **A deck must be in `_quarto.yml`'s `project: render:` list to render
 properly** — even `quarto render deck.qmd` on an unlisted deck ignores the
@@ -85,7 +86,8 @@ slide overview, `esc` to zoom out.
 For a PDF handout, open `matrices.html?print-pdf` and print from Chrome with
 **Background graphics** on. The labs come through as a static image at their
 current slider values. Sharing the deck itself means hosting it —
-`quarto publish quarto-pub` — because a self-contained single file drops the
+`pwsh -File tools\publish.ps1 <deck>` puts it on GitHub Pages (TUTORIAL.md §8;
+`quarto publish` refuses this folder) — because a self-contained single file drops the
 lab JavaScript entirely. See [TUTORIAL.md](TUTORIAL.md) §8.
 
 ## Interactive labs
@@ -97,7 +99,7 @@ A lab is a `<div>` in the `.qmd`; `assets/labs.js` finds it and mounts the demo:
      data-theta="60" data-dx="3" data-dy="0"></div>
 ```
 
-Sixteen kinds, set with `data-lab`:
+Nineteen kinds, set with `data-lab`:
 
 | `data-lab` | what it is | used in |
 | --- | --- | --- |
@@ -117,6 +119,9 @@ Sixteen kinds, set with `data-lab`:
 | `parallel` | the same with parallel planes: plane 1 and plane 2 both horizontal, the point (where it starts in `planes`) mirrored in one then the other slides straight up by twice the gap between them — the $t/2$ in a dual quaternion. One slider, *Distance between planes* (0–2.5); t/2 and t are written on the diagram; drag the initial position; **Play** animates the first reflection, the second, then the translation arrow | dualQuaternions |
 | `blades` | DQ Candy Crush: type up to 7 indices (0–3 only, no coefficient) and they become coloured tiles sitting low beside an $e$, as its subscript. Between each pair of neighbours is a button — **⇄** swaps them and flips the sign; once they match it becomes **✸**, which pops 11, 22 or 33 (they vanish) or 00 (the whole term is 0). Underneath is the term as it stands now, e.g. $-e_{032}$ | dualQuaternions |
 | `ray-sphere` | sliders for a ray's start $\vec{S}$ and direction $\vec{D}$ and a sphere's centre $\vec{C}$ and radius $r$, all 3D; reads out $a$, $b$, $c$ and the discriminant $b^2 - 4ac$, coloured by its sign (red < 0, amber = 0, green > 0). It stops there: solving for $t$ stays on the slide. Beside the numbers, a 3D view of the ray and the sphere (drag to orbit, scroll to zoom, **Reset view**): the ray solid for $t \ge 0$ and faint dashed for $t < 0$, which is why a sphere behind the start still gives a positive discriminant, and anything the sphere hides drawn dashed. Starts on a ray down the $x$-axis at a unit sphere 5 along it: $a = 1$, $b = -10$, $c = 24$, discriminant 4; $C_y = 1$ makes it a tangent | rayIntersections |
+| `ray-cylinder` | the same for an infinitely long cylinder through end cap centres $\vec{A}$ and $\vec{B}$ with radius $r$, with the slide's $a = \vec{D}^2 - (\vec{D} \cdot \widehat{AB})^2$, $b = 2\overrightarrow{AS} \cdot \vec{D} - 2\vec{D} \cdot \widehat{AB}(\widehat{AB} \cdot \overrightarrow{AS})$, $c = \overrightarrow{AS}^2 - (\overrightarrow{AS} \cdot \widehat{AB})^2 - r^2$. Drawn only as far as a cube around the scene, like the ray. Starts on the sphere's numbers ($a = 1$, $b = -10$, $c = 24$, discriminant 4) with the cylinder standing upright; tilting $\vec{D}$ along the axis changes nothing. When $a = 0$ ($\vec{D}$ along the axis, or zero) or $\vec{A} = \vec{B}$, the discriminant greys out and the view says why, since the quadratic formula divides by $2a$ | rayIntersections |
+| `cross` | the cross product: sliders for $\vec{A}$ and $\vec{B}$, a 3D view of both and $\vec{A} \times \vec{B}$ from the origin (the parallelogram they span shaded, right-angle marks where $\vec{A} \times \vec{B}$ meets them; grey axes, since red, blue and green are the vectors), and each component worked out under its formula, e.g. $z = A_xB_y - A_yB_x = (3)(2) - (1)(1) = 5$. Starts flat in the $xy$ plane, $\vec{A} = [3, 1, 0]$, $\vec{B} = [1, 2, 0]$, so the result points straight along $z$; parallel vectors give $[0, 0, 0]$ and the view says why | vectorOperations |
+| `bullets` | a bullet hell pattern, picked with `data-pattern`: `radial`, `spiral`, `fan`, `aimed`, `waves`, `grids`, `floral`, `rings`, `stars`, `intersections`, `rain`, `particles`, `homing`, `lasers` or `composite`. An Undertale-style black box: a grey emitter fires plain white dots, and a red heart starts at the bottom and moves anywhere in the box: click the box, then hold the arrow keys (Esc lets go). A bullet that reaches the heart disappears. The arrows only move the heart while the box has focus, and are kept from reveal.js then, so they cannot change slide; no letter key is free, since reveal.js has h/j/k/l and the deck's menu b, c, d, e, f, m, o, r and s. Each pattern has a rate slider, labelled for what it fires (rings, bullets, fans, rows ... per second), and a slider or two of its own (bullets per ring, turn per shot, spread, gravity, ...). With `data-readout="true"` it also shows the formula behind it, e.g. `360° / 16 = 22.5°`, `atan2(-5.6, 2) = -70.3°`, or the heart's distance from a laser beam; the deck leaves that off. A demo runs only on the slide being shown and starts over each time you arrive at it. `waves` is rows of bullets bent into the same sine wave, y = row + A sin(kx), falling together at a steady speed like a curtain. `particles` follows the write-up's sparks: angle, speed and bullets per burst each within a range, with a bias that pulls the randoms toward the middle of it. `composite` has no sliders: a button per pattern adds it to the box at its default settings, and a second click takes it out, so a mix can be built up live. The patterns follow npaka's write-up of *Shooting Game Algorithm Maniacs*, whose formula is angle = base + i × even angle + sin(t) × fluctuation. The one lab that time-steps (bullets move every frame) rather than recomputing on a drag | bulletHell |
 
 Options, all optional:
 
@@ -151,9 +156,14 @@ Options, all optional:
 | `data-bs-labels` `data-cs-labels` | `matmul` (with `data-bs`) | comma-separated captions for each $b_i$ and $c_i$, matched up by position |
 | `data-ms` `data-ms-labels` | `matmul` | a chain of square matrices instead of $A$ and $B$, semicolon-separated (`data-ms-labels="T,R,S"`), multiplied right to left: $R 	imes S = RS$ cell by cell, then $T 	imes RS = TRS$ stacked underneath, its $RS$ filling in as the first product does — the Model Matrix slide |
 | `data-indices` | `blades` | the indices typed in to start with (default `01123`) |
-| `data-start` `data-dir` `data-centre` | `ray-sphere` | the ray's start $\vec{S}$, its direction $\vec{D}$ and the sphere's centre $\vec{C}$, 3 comma-separated numbers each (defaults `0,0,0`, `1,0,0`, `5,0,0`) |
-| `data-radius` | `ray-sphere` | the sphere's radius $r$ (default 1) |
-| `data-view` `data-yaw` `data-pitch` | `ray-sphere` | starting zoom (half-height, default 3.5) and camera angles (default −32, 22); the camera orbits the point halfway between the starting $\vec{S}$ and $\vec{C}$ |
+| `data-start` `data-dir` `data-centre` | `ray-sphere` (`data-start` `data-dir` also `ray-cylinder`) | the ray's start $\vec{S}$, its direction $\vec{D}$ and the sphere's centre $\vec{C}$, 3 comma-separated numbers each (defaults `0,0,0`, `1,0,0`, `5,0,0`) |
+| `data-radius` | `ray-sphere` `ray-cylinder` | the radius $r$ (default 1) |
+| `data-vec-a` `data-vec-b` | `cross` | $\vec{A}$ and $\vec{B}$, 3 comma-separated numbers each (defaults `3,1,0` and `1,2,0`), each component within the sliders' $\pm 5$ |
+| `data-end-a` `data-end-b` | `ray-cylinder` | the end cap centres $\vec{A}$ and $\vec{B}$, 3 comma-separated numbers each (defaults `5,0,0` and `5,3,0`). Not `data-a` / `data-b`, which are `matmul`'s matrices |
+| `data-view` `data-yaw` `data-pitch` | `ray-sphere` `ray-cylinder` `cross` | starting zoom (half-height, default 3.5) and camera angles (default −32, 22); the camera orbits the point halfway between the starting $\vec{S}$ and the shape's centre ($\vec{C}$, or midway between $\vec{A}$ and $\vec{B}$) |
+| `data-pattern` | `bullets` | which pattern (default `radial`); the list is in the table above |
+| `data-heart-x` | `bullets` | where the heart starts, across the box (default 0, the middle) |
+| `data-readout` | `bullets` | `true` shows each pattern's formula under the sliders (and, for `composite`, which patterns are in the box) |
 
 Every slider's number is also a text box: click it to type an exact value
 (Enter or click away to commit, Escape to cancel), rather than only dragging
@@ -215,7 +225,7 @@ demos or one finishing before the other starts.
 Code layout: `lab-core.js` (dragging, run loop, panels) and `draw2d.js` (the
 Canvas 2D drawing) → `lab-mount.js` (stage + panel + wiring, shared by every
 draggable lab) → `transform-lab.js`, `transform-lab3d.js`, `vector-lab.js` and
-`motion-lab.js` (the labs themselves), plus `matmul-lab.js`, `det-lab.js` and `blade-lab.js` (DOM only, no stage), and `ray-lab.js` (its own stage and orbit camera, like `transform-lab3d.js`) → `labs.js` (the
+`motion-lab.js` (the labs themselves), plus `matmul-lab.js`, `det-lab.js` and `blade-lab.js` (DOM only, no stage), and `ray-lab.js` and `cross-lab.js`, which share `orbit3d.js` (a Canvas 2D stage with an orbit camera, floor and axes, in the style of `transform-lab3d.js`), and `bullet-lab.js`, which uses `draw2d.js`'s stage directly and steps a simulation every frame → `labs.js` (the
 single entry point the decks load, which dispatches on `data-lab`).
 
 Every lab but `matmul` draws with Canvas 2D — immediate mode, the same model as
@@ -229,7 +239,7 @@ Two helper pages, both needing `serve.cmd` like the decks:
 - <http://localhost:8000/lab-selftest.html> — drives each lab with synthetic
   pointer drags and slider moves and checks the readouts against hand-worked
   values, and confirms each lab was drawn by the renderer it should be.
-  Expect `all 147 checks passed`. Run it after touching `assets/*.js`.
+  Expect `all 181 checks passed`. Run it after touching `assets/*.js`.
 
 ## Figures
 

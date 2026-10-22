@@ -1,0 +1,30 @@
+---
+title: "Game Math 1"
+subtitle: "Vector Operations"
+institute: "Faculty of Media, Creative Arts, and Design, Humber Polytechnic"
+---
+## Cross Product
+Take the cross of two vectors to find the one perpendicular to both.
+
+I know this sounds useless in 2D, but trust me it's still handy!
+
+$$\vec{A} \times \vec{B} = 
+\begin{pmatrix}
+A_yB_z - A_zB_y\\
+A_zB_x - A_xB_z \\
+A_xB_y - A_yB_x
+\end{pmatrix}$$
+
+. . . 
+
+I actually memorize that by taking the determinant of this matrix (where $i, j, k$ point along $x, y, z$)
+
+$$\vec{A} \times \vec{B} = \text{det}\begin{pmatrix}
+i & j & k\\
+A_x & A_y & A_z\\
+B_x & B_y & B_z 
+\end{pmatrix}$$
+
+## Cross Product Demo
+
+<div class="lab-mount" data-lab="cross" data-vec-a="3,1,0" data-vec-b="1,2,0"></div>

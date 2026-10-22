@@ -1,6 +1,6 @@
 # Project status and plan
 
-Last updated: 2026-09-26
+Last updated: 2026-10-09
 
 Where the Beamer → Quarto migration stands, what is decided, and what is still
 open. [README.md](README.md) is the reference for using what exists;
@@ -36,8 +36,8 @@ browser. See §1.1 for what is left.
   43 KB of source plus the 23 KB logo, and the decks still need no network in
   class.
 - **`serve.cmd`** for presenting; **`lab-preview.html`** for tweaking demos;
-  **`lab-selftest.html`** for regression checks (98 checks, all passing as of
-  2026-09-26).
+  **`lab-selftest.html`** for regression checks (131 checks, all passing as of
+  2026-10-09).
   It can be run headlessly, which is how each renderer conversion is gated:
   `python -m http.server 8000`, then
   `chrome --headless=new --enable-unsafe-swiftshader --virtual-time-budget=25000
@@ -54,7 +54,7 @@ browser. See §1.1 for what is left.
   lands the bundle near 30 MB.
 
   Worth fixing before publishing, but it is a packaging change — a shared
-  `_libs`, or letting `quarto publish` do the deduplication — not anything to do
+  `_libs` (which `quarto publish` cannot do here; TUTORIAL.md §8) — not anything to do
   with the slides. It also only bites the **zip**: on GitHub Pages the browser
   caches one copy per file path, so a student downloads it once. Filed here so
   the growth is not mistaken later for the decks themselves getting heavy.
@@ -274,6 +274,40 @@ Three things worth carrying forward:
   every `pmatrix` row (pandoc then printed the rest as text). The screenshot
   caught it, not the self-test — same lesson as §1.3.
 
+### 1.5 Game Math 2: `matricesIn3d` (2026-10-09)
+
+New 10-slide deck, *Matrices for 3D*, live on `gh-pages` beside
+`dualQuaternions`. Its three dumptruck demos are now 4×4:
+
+| slide | demo |
+| --- | --- |
+| Multiplying a Matrix by a Vector | $S = \mathrm{diag}(4,-3,2,1)$ × $v = (2,1,3,1)$ → $(8,-3,6,1)$ |
+| The Model Matrix | $T$ = translate(4, 5, −1), $R$ = 90° about $z$, $S = \mathrm{diag}(2,3,1,1)$: $RS$, then $TRS = [0,-3,0,4;\ 2,0,0,5;\ 0,0,1,-1;\ 0,0,0,1]$ |
+| Directions Don't Translate | $T$ = translate(3, −1, 2) on $P = (2,1,1,1)$ and $D = (2,1,1,0)$ → $TP = (5,0,3,1)$, $TD = D$ |
+
+| file | change |
+| --- | --- |
+| `assets/matmul-lab.js` | size read from `data-a` (3×3 or 4×4); new `mountChain` for $T \times R \times S$ |
+| `assets/labs.js` | parses `data-ms` / `data-ms-labels` |
+| `_quarto.yml` | `matricesIn3d.qmd` added to the render list |
+| `matricesIn3d.qmd` | own `footer:` — *Game Math 2, Umer Noor, PhD* |
+| `.gitignore` | rendered-output entries renamed from the old `matricesPlus3d` |
+
+Lessons:
+
+- **`quarto publish gh-pages` refuses this folder** ("not a website,
+  manuscript or book project"). Not a regression: Quarto publishes a plain
+  project only while it has exactly one document to render, which is why it
+  worked when `matrices.qmd` was the only deck (and why that first publish
+  overwrote `index.html` and dropped the lab modules). Publishing is now
+  `tools\publish.ps1` (TUTORIAL.md §8). It stays a human step: the Claude Code
+  auto-mode block on deploys is kept deliberately.
+- **An unlisted deck renders bare** and overwrites the good HTML — check the
+  render list before the first `quarto render` of a new deck.
+- **No self-test checks cover the 4×4 or chain `matmul` paths yet** — they were
+  verified by a throwaway headless page. Worth adding to `lab-selftest.html`
+  next time `matmul-lab.js` is touched.
+
 ---
 
 ## 2. Decisions made
@@ -379,8 +413,10 @@ painter's-algorithm face sort over one 10-vertex house. Kept here so the next
   self-test's Canvas 2D identity check would fail.
 - **The projection is the lesson.** It is a matrix and a divide, readable on a
   slide — not a black box — and it is immediate mode, matching `Scene0::Render`.
-- **Publishing.** Every imported module is another file `quarto publish` does
-  not trace (TUTORIAL.md §8), so another file to patch onto `gh-pages` by hand.
+- **Publishing.** Every imported module is another file to get onto
+  `gh-pages`. `tools\publish.ps1` copies every `assets\*.js` and checks each is
+  served, so a vendored library inside `assets\` would be covered, but one with
+  its own folder of modules would need adding to the script (TUTORIAL.md §8).
 
 **What three.js would buy, i.e. the triggers to revisit:**
 
@@ -904,8 +940,9 @@ Steps 0a–0c need no decisions and can be done at any time.
    assignment PDFs into `physics-1/assignments/` and link them (§5).
 6. `quarto render`, then confirm: all three decks render, `lab-selftest.html`
    shows **56/56**, and the PDF export still works.
-7. Add LICENSE + NOTICE (§3.6). `git init`, `gh repo create`,
-   `quarto publish gh-pages`.
+7. Add LICENSE + NOTICE (§3.6). `git init`, `gh repo create`, then publish
+   with `tools\publish.ps1` (`quarto publish` refuses a plain multi-deck
+   project; TUTORIAL.md §8).
 8. Verify the live URLs, then retire the OneDrive copy.
 9. Delete the temp-directory workaround in `tools/eps2svg.sh` — it exists *only*
    because of the space in `OneDrive - Humber College` (its own comment says so

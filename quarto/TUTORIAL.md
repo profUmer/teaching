@@ -315,7 +315,7 @@ Two levels, and it is worth doing both after any change to `assets/*.js`.
 <http://localhost:8000/lab-selftest.html>. It mounts every lab, synthesises
 real pointer drags and slider moves, reads the numbers back out of the panels,
 and compares them against values worked out by hand. You want
-`all 147 checks passed` in green at the top. This covers what a screenshot
+`all 181 checks passed` in green at the top. This covers what a screenshot
 cannot: that a handle can be grabbed, that dragging updates the readout, and
 that the arithmetic is right at more than one position. It also asserts each
 lab was drawn by Canvas 2D, since the readouts alone cannot tell you that.
@@ -425,67 +425,114 @@ with them.
 Serving over http is the whole requirement, so put it on a web server.
 `index.html` in this folder is the landing page listing both decks.
 
-**GitHub Pages** — recommended, and the one to use if the course material is
-going to live in a repo anyway:
+**GitHub Pages** — the one in use. The site is the `gh-pages` branch of
+`github.com/profUmer/teaching`, served at <https://profumer.github.io/teaching/>.
+The repo was created once with:
 
 ```powershell
 cd "...\Slides"
 git init && git add . && git commit -m "Course slides"
 gh repo create teaching --public --source=. --push
-
-cd quarto
-quarto publish gh-pages
 ```
 
-That renders, pushes the output to a `gh-pages` branch, and turns Pages on. The
-result is `https://<user>.github.io/teaching/`. Republishing later is just
-`quarto publish gh-pages` again.
+**To publish, use `tools\publish.ps1`**, from the `quarto` folder:
 
-> **Update 2026-10-09: `quarto publish gh-pages` no longer works here.** It
-> stops with `ERROR: The specified path (...\quarto) is not a website,
-> manuscript or book project so cannot be published.` Decks have since been
-> published by committing the rendered files straight onto `gh-pages` from a
-> worktree — the same move as the fix further down, used for the whole job:
->
-> ```powershell
-> # in Slides\quarto - the deck must be in _quarto.yml's render list first
-> quarto render matricesIn3d.qmd
->
-> git -C .. fetch origin
-> git -C .. worktree add C:\gwt gh-pages
-> Copy-Item matricesIn3d.html, index.html C:\gwt\ -Force
-> Copy-Item matricesIn3d_files C:\gwt\ -Recurse -Force   # new deck only
-> Copy-Item assets\*.js, assets\slides.css C:\gwt\assets\ -Force
-> git -C C:\gwt add -A
-> git -C C:\gwt commit -m "Publish the matrices for 3D deck"
-> git -C C:\gwt push origin gh-pages
-> git -C .. worktree remove --force C:\gwt
-> ```
->
-> Any `figs/` a deck uses must be on `gh-pages` too. Most `assets/` files
-> differ from `gh-pages` only in line endings (CRLF vs LF), which git ignores,
-> so copying all of them is harmless. Then verify as below. If `worktree remove`
-> asks *"Deletion of directory '.git/worktrees/gwt/logs' failed. Should I try
-> again?"*, OneDrive is holding a lock: answer **y** once more, or **n** and
-> then `git worktree prune`. If `.git\worktrees\gwt` is still there after that,
-> delete it by hand.
->
-> Claude Code's auto mode blocks this as a production deploy, and that block
-> is kept on purpose: Claude prepares the render and the commands, and you run
-> the deploy.
+```powershell
+pwsh -File tools\publish.ps1 rayIntersections               # one deck
+pwsh -File tools\publish.ps1 rayIntersections matricesIn3d  # several
+pwsh -File tools\publish.ps1                                # shared files only
+pwsh -File tools\publish.ps1 rayIntersections -DryRun       # show, don't push
+pwsh -File tools\publish.ps1 rayIntersections -VerifyOnly   # is it live yet?
+```
+
+It renders each deck named, downloads the `gh-pages` branch on its own into
+`C:\gwt`, copies in each deck's `.html` and `_files\` along with `index.html`,
+every `assets\*.js`, `assets\slides.css` and any `figs\` the decks use, then
+lists what would change and asks before committing and pushing. Afterwards it
+deletes `C:\gwt`, waits for GitHub Pages to build *that* push, and checks that
+the site serves the same files as this folder. Running it with no deck names
+publishes just the shared files, e.g. after a fix to `slides.css` or a lab
+module, which every deck picks up. `-DryRun` goes as far as listing the
+changes and stops; `-NoRender` publishes the `.html` already on disk.
+
+It refuses a deck that is not in `_quarto.yml`'s render list, and a rendered
+page that is not a reveal.js deck with the lab script, since either would put
+a bare page on the live site.
+
+**Waiting for the site.** The check compares each live text file with the copy
+here, not just that it loads: every file but a new deck's already exists on
+the site before a push, so "it loads" would pass straight away, before GitHub
+has built anything (an early version of the script did exactly that). GitHub's
+build usually takes a minute or two, but its queue has taken over 10 minutes.
+The push is done either way; Ctrl+C only stops the waiting, and
+`-VerifyOnly` checks again later. `-VerifyOnly` publishes nothing, and if a
+file differs it means either GitHub has not finished building, or the file
+changed here since it was published.
+
+**Why a separate download, not a git worktree.** A worktree keeps its
+bookkeeping in this repo's `.git` folder, inside OneDrive, and OneDrive's file
+locks made removing it fail with *"Deletion of directory
+'.git/worktrees/gwt/logs' failed. Should I try again?"*. The download in
+`C:\gwt` writes nothing into OneDrive, and takes about 8 seconds.
+
+Claude Code's auto mode blocks publishing as a production deploy, and that
+block is kept on purpose: Claude prepares the work, and you run the script.
+
+**Why not `quarto publish gh-pages`.** It stops with `ERROR: The specified path
+(...\quarto) is not a website, manuscript or book project so cannot be
+published.` This is how Quarto treats this folder, not something that broke.
+The folder is a plain Quarto project (`_quarto.yml` has no `type: website`),
+and Quarto publishes a plain project only while it has exactly one document to
+render — in that case it publishes that single document as the whole site. The
+check is in Quarto's `createPublishOptions`:
+
+```js
+if (projectIsWebsite(project))                  input = project;
+else if (projectIsManuscript(project) && ...)   input = project;
+else if (project.files.input.length === 1)      input = project.files.input[0];
+else throw new Error("... is not a website, manuscript or book project ...");
+```
+
+It worked at first only because the render list then held one deck,
+`matrices.qmd`. Once a second deck joined the list it refused. `quarto publish
+quarto-pub` goes through the same check, so it fails the same way. Adding
+`type: website` to `_quarto.yml` would let Quarto publish the folder as a
+whole, but it changes how the project renders (an `_site\` output folder, and
+`index.html` handled as a resource), so it has not been tried.
+
+**By hand**, if the script is ever unavailable — this is what it does:
+
+```powershell
+# in Slides\quarto - the deck must be in _quarto.yml's render list first
+quarto render rayIntersections.qmd
+
+git clone --depth 1 --branch gh-pages --single-branch https://github.com/profUmer/teaching.git C:\gwt
+git -C C:\gwt config user.email (git -C .. config user.email)   # the repo's private noreply address
+Copy-Item rayIntersections.html, index.html C:\gwt\ -Force
+Copy-Item rayIntersections_files C:\gwt\ -Recurse -Force
+Copy-Item assets\*.js, assets\slides.css C:\gwt\assets\ -Force
+git -C C:\gwt add -A
+git -C C:\gwt commit -m "Publish rayIntersections"
+git -C C:\gwt push origin gh-pages
+Remove-Item C:\gwt -Recurse -Force
+```
+
+Any `figs/` a deck uses must be copied too. Most `assets/` files differ from
+`gh-pages` only in line endings (CRLF vs LF), which git ignores, so copying
+all of them is harmless.
 
 The repo and folder names deliberately carry **no course code** — codes get
 renumbered, and both end up in URLs already handed to students. The code belongs
 in the deck title instead. See [PLAN.md](PLAN.md) §2 and §4.
 
-**Publishing only some decks.** `quarto publish gh-pages` renders and pushes
-every `.qmd` that matches `_quarto.yml`'s `project: render:` list — by default
-`"*.qmd"`, i.e. all of them — regardless of what git has committed. Getting a
-deck live without the others needs two separate things done, since they are
-two separate mechanisms:
+**Publishing only some decks.** Only the decks you name to `tools\publish.ps1`
+go live. Holding a deck back still involves two separate things, since they
+are two separate mechanisms:
 
-1. **What gets rendered onto the live site** — scope `project: render:` in
-   `_quarto.yml` to just the ready deck(s):
+1. **What can be rendered properly** — a deck must be in `_quarto.yml`'s
+   `project: render:` list to render as slides at all (an unlisted one comes
+   out as a bare page, and the script refuses to publish it). Listing a deck
+   does not publish it; naming it to the script does:
 
    ```yaml
    project:
@@ -493,8 +540,8 @@ two separate mechanisms:
        - matrices.qmd   # not "*.qmd" - vectors and motion aren't ready yet
    ```
 
-   Also comment out the other decks' cards in `index.html` so the landing page
-   has no dead links to pages that don't exist yet.
+   Also comment out held-back decks' cards in `index.html`, since every run
+   publishes `index.html` and the landing page should have no dead links.
 
 2. **What gets committed to the repo at all** — a deck's raw `.qmd` source is
    readable on GitHub the moment it is committed, whether or not step 1 ever
@@ -509,68 +556,32 @@ two separate mechanisms:
    `vectors.qmd` and `motion.qmd` are left untracked on disk — `git status`
    shows them, but nothing pushes them until a deliberate `git add` names them.
 
-To add a held-back deck later: revert `_quarto.yml`'s render list (back to
-`"*.qmd"`, or list the decks explicitly), un-comment its `index.html` card,
-`git add` its `.qmd` (and any new `assets`/`figs` it needs), commit, push, then
-`quarto publish gh-pages` again to update the live site.
+To add a held-back deck later: add it to `_quarto.yml`'s render list,
+un-comment its `index.html` card, `git add` its `.qmd` (and any new
+`assets`/`figs` it needs), commit, push, then publish it with
+`pwsh -File tools\publish.ps1 <deck>`.
 
-**Two bugs this scoping triggers, both verified 2026-09-24 — check for them
-after every `quarto publish gh-pages` while the render list is a single
-file.** `quarto publish` only bundles a file if it can trace a reference to
-it through something it recognises — a CSS `link`, an image in markdown, a
-head-include's `script src`. `labs.js` pulls in `draw2d.js`, `lab-core.js`,
-`lab-mount.js`, `transform-lab.js`, `transform-lab3d.js`, `vector-lab.js`, `motion-lab.js` and
-`matmul-lab.js` via plain JS `import` statements, which that scanner never
-follows — so only `labs.js` itself gets published, every one of those 404s,
-and **every lab silently fails to mount** (the import fails before `boot()`
-ever runs — no console-visible `lab-failed`, nothing; the page just looks
-right until you touch a demo). Separately, **`index.html` gets overwritten**
-with a copy of the sole rendered document — this only happens when the
-render list resolves to exactly one file, so it won't show up once more than
-one deck is live. A `project: resources:` declaration in `_quarto.yml`
-naming these files did not fix either problem (untested why — possibly not
-honoured for a bare default project, only `type: website`/`book`) so don't
-rely on it. The fix is direct — a git worktree, so the main checkout is
-never touched:
+**What the first `quarto publish` got wrong, 2026-09-24.** Two things broke on
+the live site, both from the single-document route described above. Quarto
+published `matrices.qmd` as a lone document, so it **overwrote `index.html`**
+with a copy of the deck, and it bundled only files the page references
+directly. `labs.js` loads `draw2d.js`, `lab-core.js` and the rest through
+plain JS `import` statements, which Quarto's scanner never follows, so those
+modules 404'd and **every lab silently failed to mount** — no `lab-failed`,
+no error on screen; the page looked right until you touched a demo. A
+`project: resources:` list did not help, since Quarto honours it only for
+website and book projects. `tools\publish.ps1` avoids both by copying
+`index.html` and every `assets\*.js` itself, and then checking that each one
+is served.
 
-```powershell
-cd "...\Slides"
-git worktree add C:\gwt gh-pages   # a short path - matrices_files\ nests deep
-                                    # enough to hit Windows' path-length limit
-                                    # from inside OneDrive's own long path
+After any publish, still load a deck and drag a slider or click a lab button.
+A page that loads is not proof the demos run.
 
-Copy-Item quarto\assets\*.js C:\gwt\assets\ -Force
-Copy-Item quarto\index.html C:\gwt\index.html -Force
+**Quarto Pub** (`quarto publish quarto-pub`) does not work here either: it goes
+through the same folder check as `gh-pages` above and refuses for the same
+reason.
 
-cd C:\gwt
-git add assets index.html
-git commit -m "Fix: publish the lab modules labs.js imports, and index.html"
-git push origin gh-pages
-
-cd "...\Slides"
-git worktree remove --force C:\gwt
-```
-
-Then verify with more than a plain `curl` for a 200 — that only proves the
-HTML loaded, not that the labs did:
-
-```powershell
-"labs.js","lab-core.js","draw2d.js","transform-lab.js","transform-lab3d.js","vector-lab.js","motion-lab.js","matmul-lab.js" |
-  ForEach-Object { "$_`: " + (Invoke-WebRequest "https://<user>.github.io/<repo>/assets/$_" -UseBasicParsing).StatusCode }
-```
-
-or load the page in a browser and check a demo actually responds to a drag or
-a click, not just that it's visible.
-
-**Quarto Pub** — fewer steps, no git at all, if you only want the link:
-
-```powershell
-quarto publish quarto-pub
-```
-
-Accounts are set up interactively the first time.
-
-**itch.io** works too, but it is the worst fit of the three: the deck runs
+**itch.io** works too, but it is a worse fit than GitHub Pages: the deck runs
 inside an embed frame, and every update is a manual zip re-upload rather than a
 command. If you want it anyway:
 
@@ -658,8 +669,11 @@ Two errors found in the old sources while converting, both still in the `.tex`:
 | PDF export came out one blank page | intermittent Chrome print race | just retry; it succeeds on the next attempt |
 | Raw HTML laid out wrong | inside a `:::` div pandoc parses it as Markdown and wraps every `<img>` in a `<p>` | put it in a ```` ```{=html} ```` block instead |
 | Deck renders as a plain web page — no slides, theme, footer or labs | the deck is not in `_quarto.yml`'s `project: render:` list, so the project file is ignored | add it to the list, then re-render |
-| `quarto publish gh-pages`: "is not a website, manuscript or book project" | this folder is a bare default project | publish through a `gh-pages` worktree (§8) |
-| `git worktree remove`: "Deletion of directory ... failed. Should I try again?" | OneDrive is locking files in `.git` | **y** once more; else **n**, `git worktree prune`, and delete `.git\worktrees\gwt` |
+| `quarto publish gh-pages`: "is not a website, manuscript or book project" | this folder is a plain project with more than one deck, and Quarto publishes a plain project only when it has exactly one | `pwsh -File tools\publish.ps1 <deck>` (§8) |
+| `publish.ps1`: "C:\gwt already exists and is not a clone this script made" | something else is at that path | move or delete `C:\gwt` (a clone the script left behind is deleted automatically) |
+| `publish.ps1`: "is not in _quarto.yml's project: render: list" | the deck would render as a bare page | add it to the list, then run again |
+| `git worktree remove`: "Deletion of directory ... failed. Should I try again?" | OneDrive is locking files in `.git` (the script no longer uses worktrees, so only by hand) | **n**, then `git worktree prune`; delete any leftover `.git\worktrees\gwt` once the lock clears |
+| `publish.ps1` -VerifyOnly: "The live site does not match this folder" | GitHub has not finished building the last push, or those files changed here since | check the Actions tab; if the build is done, publish them |
 | Boxes (▯) instead of arrows/hats in a lab readout | combining marks (U+20D7, U+0302) are missing from the UI font | spell it out — `N / |N|` rather than `N̂` |
 
 One harmless error appears in the browser console on every deck:
@@ -706,5 +720,5 @@ Speaker notes.
 quarto preview deck.qmd     # write, with live reload
 quarto render               # build everything
 .\serve.cmd                 # present
-quarto publish quarto-pub   # share
+pwsh -File tools\publish.ps1 deck   # publish to the live site
 ```

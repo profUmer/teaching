@@ -1,0 +1,111 @@
+---
+title: "Game Math 1"
+subtitle: "Bullet Hell Patterns"
+institute: "Faculty of Media, Creative Arts, and Design, Humber Polytechnic"
+---
+## Bullet Hell Patterns
+:::: {.columns}
+::: {.column width="60%"}
+Beautiful patterns are laid out in the book:
+
+"Shooting Game Algorithm Maniacs", by Ken'itirou Matuura.
+
+There is a write-up here that can be translated:
+
+<https://note.com/npaka/n/n5d38b7d84173?hl=en>
+:::
+::: {.column width="40%"}
+![](figs/ShootingGameAlgorithmManiacs.png){height="480px"}
+
+:::
+::::
+
+## Radial
+
+Spread out from all directions from the centre
+
+<div class="lab-mount" data-lab="bullets" data-pattern="radial"></div>
+
+## Spiral
+
+Rotate the firing angle
+
+<div class="lab-mount" data-lab="bullets" data-pattern="spiral"></div>
+
+## Fan
+
+Like radial, but in one direction
+
+<div class="lab-mount" data-lab="bullets" data-pattern="fan"></div>
+
+## Aimed Shots
+
+Based on players positions
+
+<div class="lab-mount" data-lab="bullets" data-pattern="aimed"></div>
+
+## Waves/Curtains
+
+A wave shape that surges forward
+
+<div class="lab-mount" data-lab="bullets" data-pattern="waves"></div>
+
+## Grids
+
+Align them along x and y for a regular grid, or rotate to create a diamond pattern
+
+<div class="lab-mount" data-lab="bullets" data-pattern="grids"></div>
+
+## Floral Patterns
+
+Flower like designs
+
+<div class="lab-mount" data-lab="bullets" data-pattern="floral"></div>
+
+## Rings
+
+A ring that expands out or converges back in
+
+<div class="lab-mount" data-lab="bullets" data-pattern="rings"></div>
+
+## Star shapes
+
+Pick specific vertices and angles to make stars or polygons
+
+<div class="lab-mount" data-lab="bullets" data-pattern="stars"></div>
+
+## Intersections
+
+Overlapping bullet streams 
+
+<div class="lab-mount" data-lab="bullets" data-pattern="intersections"></div>
+
+## Rain
+
+Fall due to gravity downwards
+
+<div class="lab-mount" data-lab="bullets" data-pattern="rain"></div>
+
+## Particles
+
+Scattered bullets
+
+<div class="lab-mount" data-lab="bullets" data-pattern="particles"></div>
+
+## Homing and Trajectory Changes
+
+Bullets that curve towards the player
+
+<div class="lab-mount" data-lab="bullets" data-pattern="homing"></div>
+
+## Lasers
+
+Straight lines
+
+<div class="lab-mount" data-lab="bullets" data-pattern="lasers"></div>
+
+## Composite
+
+Combine multiple patterns
+
+<div class="lab-mount" data-lab="bullets" data-pattern="composite"></div>

@@ -1,8 +1,7 @@
 project:
   render:
-    # Scoped to the decks ready to publish; vectors and motion aren't yet.
-    # Switch back to "*.qmd" (or add them explicitly) when they're ready,
-    # then `quarto publish gh-pages` again to add them to the live site.
+    # Scoped to the decks that are ready; vectors and motion aren't yet. Add
+    # a deck here when it is, then publish it with tools\publish.ps1.
     # A deck NOT listed here renders without any of this file (no theme,
     # footer, author, slides.css or labs) - even `quarto render x.qmd`.
     - matrices.qmd
@@ -10,17 +9,14 @@ project:
     - dualQuaternions.qmd
     - matricesIn3d.qmd
     - rayIntersections.qmd
-  # Tried listing assets/**, figs/** and index.html here as `resources:` to
-  # get quarto publish to bundle files it can't trace through a recognised
-  # reference (labs.js pulls in its sibling modules via plain JS `import`,
-  # which quarto's dependency scanner never follows) - it had no effect,
-  # verified 2026-09-24. `resources:` may only be honoured for `type:
-  # website`/`type: book` projects, not this bare default project type; did
-  # not chase further. The actual, verified fix after every
-  # `quarto publish gh-pages`: check the site loads (labs mounting, not just
-  # matrices.html returning 200), and if `assets/*.js` 404s or index.html
-  # got overwritten with the rendered deck (both happened the first time),
-  # patch the gh-pages branch directly - see TUTORIAL.md §8.
+    - vectorOperations.qmd
+    - bulletHell.qmd
+  # No `type: website`, so this is a plain project - which is why
+  # `quarto publish gh-pages` refuses it: Quarto publishes a plain project
+  # only while it has exactly one deck to render (TUTORIAL.md §8). Publish
+  # with tools\publish.ps1 instead. A `resources:` list here would not help
+  # either: Quarto honours it only for website and book projects (tried
+  # 2026-09-24, no effect).
 
 author: "Umer Noor, PhD"
 date: today

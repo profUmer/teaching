@@ -6,7 +6,8 @@
     file itch looks for. It is also handy for uploading to an LMS or any plain
     web host.
 
-    If you publish with `quarto publish gh-pages` you do not need this at all.
+    If you publish to GitHub Pages with tools\publish.ps1 you do not need this
+    at all.
 
     Usage (from the quarto folder):
         pwsh -File tools\make-deploy.ps1

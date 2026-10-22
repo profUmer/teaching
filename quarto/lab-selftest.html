@@ -70,6 +70,15 @@
   <!-- Physics 3, ray intersections: the ray-sphere quadratic. -->
   <div class="lab-mount" id="t-ray" data-lab="ray-sphere"
        data-start="0,0,0" data-dir="1,0,0" data-centre="5,0,0" data-radius="1"></div>
+  <div class="lab-mount" id="t-cyl" data-lab="ray-cylinder"
+       data-start="0,0,0" data-dir="1,0,0" data-end-a="5,0,0" data-end-b="5,3,0" data-radius="1"></div>
+  <!-- Math 1, vector operations: the cross product. -->
+  <div class="lab-mount" id="t-cross" data-lab="cross" data-vec-a="3,1,0" data-vec-b="1,2,0"></div>
+  <!-- Math 1, bullet hell: a radial ring, and shots aimed at the heart. -->
+  <div class="lab-mount" id="t-radial" data-lab="bullets" data-pattern="radial" data-readout="true"></div>
+  <div class="lab-mount" id="t-aimed" data-lab="bullets" data-pattern="aimed" data-readout="true"></div>
+  <div class="lab-mount" id="t-aimed2" data-lab="bullets" data-pattern="aimed" data-heart-x="2" data-readout="true"></div>
+  <div class="lab-mount" id="t-composite" data-lab="bullets" data-pattern="composite" data-readout="true"></div>
 </div>
 
 <script type="module">
@@ -202,7 +211,7 @@ async function waitUntil(fn, timeout = 4000) {
 }
 
 const ready = () => waitUntil(() =>
-  document.querySelectorAll('.rig canvas').length === 14
+  document.querySelectorAll('.rig canvas').length === 20
   && document.querySelectorAll('#t-reflect .lab-value-row').length > 0
   && document.querySelectorAll('#t-accel .lab-value-row').length > 0
   && document.querySelector('#t-planes canvas')?.dataset.p2
@@ -213,7 +222,10 @@ const ready = () => waitUntil(() =>
   && document.querySelectorAll('#t-matmul .lab-matrix-grid').length === 3
   && document.querySelectorAll('#t-matvec .lab-matrix-grid').length === 6
   && document.querySelectorAll('#t-blades .bl-tile').length > 0
-  && document.querySelectorAll('#t-ray .lab-value-row').length === 4);
+  && document.querySelectorAll('#t-ray .lab-value-row').length === 4
+  && document.querySelectorAll('#t-cyl .lab-value-row').length === 4
+  && document.getElementById('t-cross').dataset.result
+  && document.querySelectorAll('#t-aimed .lab-value-row').length > 0);
 
 /* ------------------------------------------------------------------ tests --- */
 
@@ -232,7 +244,7 @@ async function run() {
      context, so this stays as a guard against anything reintroducing one.
      See PLAN.md 2.1. */
   for (const id of ['polar', 'add', 'dot', 'reflect', '2d',
-                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel', 'ray']) {
+                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel', 'ray', 'cyl', 'cross', 'radial', 'aimed']) {
     const canvas = document.getElementById(`t-${id}`).querySelector('canvas');
     const kind = canvas.getContext('2d') ? 'canvas2d' : 'webgl';
     record(kind === 'canvas2d', `${id.padEnd(8)} drawn by Canvas 2D`, kind, 'canvas2d');
@@ -710,6 +722,117 @@ async function run() {
     canvas.dispatchEvent(new PointerEvent('pointerup',   { ...base, ...at(0.7) }));
     await sleep(40);
     near('ray  orbiting leaves c alone', v('c ='), 33);
+  }
+
+  /* -- ray-cylinder: the same quadratic, with D and AS stripped of their
+     parts along the axis n = AB normalised ---------------------------------- */
+  /* S = 0, D = [1,0,0], A = [5,0,0], B = [5,3,0], r = 1: n = [0,1,0],
+     AS = [-5,0,0], D.n = AS.n = 0, so a = 1, b = -10, c = 25 - 1 = 24 and
+     the discriminant is 4 - the sphere's numbers, on purpose. */
+  {
+    const v = (key) => num(rowValue('t-cyl', key));
+    const disc = () => document.getElementById('t-cyl').dataset.disc;
+    near('cyl  a = D^2 - (D.n)^2', v('a ='), 1);
+    near('cyl  b = 2 AS.D - 2(D.n)(n.AS)', v('b ='), -10);
+    near('cyl  c = AS^2 - (AS.n)^2 - r^2', v('c ='), 24);
+    near('cyl  discriminant', v('discriminant'), 4);
+
+    // tilt D along the axis: D = [1,1,0], D^2 = 2 but (D.n)^2 = 1 - unchanged
+    setSlider('t-cyl', 'Dy', 1);
+    near('cyl  D along the axis: a unchanged', v('a ='), 1);
+    near('cyl  D along the axis: b unchanged', v('b ='), -10);
+    near('cyl  D along the axis: discriminant', v('discriminant'), 4);
+
+    // D = [0,1,0], straight up the axis: a = 0, the formula does not apply
+    setSlider('t-cyl', 'Dx', 0);
+    near('cyl  D parallel to the axis: a = 0', v('a ='), 0);
+    record(disc() === 'none', 'cyl  a = 0 greys the discriminant out', disc(), 'none');
+
+    // tilt the cylinder: B = [5,3,4], n = [0,0.6,0.8]; S = [0,3,0],
+    // D = [1,1,0]: AS = [-5,3,0], D.n = 0.6, AS.n = 1.8, so
+    // a = 2 - 0.36 = 1.64, b = 2(-2) - 2(0.6)(1.8) = -6.16,
+    // c = 34 - 3.24 - 1 = 29.76, discriminant 37.9456 - 195.2256 = -157.28
+    setSlider('t-cyl', 'Dx', 1);
+    setSlider('t-cyl', 'Sy', 3);
+    setSlider('t-cyl', 'Bz', 4);
+    near('cyl  tilted: a', v('a ='), 1.64);
+    near('cyl  tilted: b', v('b ='), -6.16);
+    near('cyl  tilted: c', v('c ='), 29.76);
+    near('cyl  tilted: discriminant', v('discriminant'), -157.28);
+    record(disc() === 'neg', 'cyl  tilted: a miss', disc(), 'neg');
+
+    // B onto A: no axis, so no coefficients
+    setSlider('t-cyl', 'By', 0);
+    setSlider('t-cyl', 'Bz', 0);
+    record(rowValue('t-cyl', 'a =') === '–' && disc() === 'none', 'cyl  A = B: no axis, no answer',
+      `${rowValue('t-cyl', 'a =')} ${disc()}`, '– none');
+  }
+
+  /* -- cross product: worked component by component, as on the slide ------ */
+  {
+    const lab = document.getElementById('t-cross');
+    const result = () => lab.dataset.result;
+    const working = (i) => lab.querySelectorAll('.cross-numbers')[i].textContent;
+    const setVec = (letter, v) => ['x', 'y', 'z'].forEach((a, i) => setSlider('t-cross', letter + a, v[i]));
+
+    // A = [3,1,0], B = [1,2,0], flat in xy: only z survives, 3*2 - 1*1 = 5
+    record(result() === '0,0,5', 'cross  xy-plane A, B: along z only', result(), '0,0,5');
+    record(working(2) === '= (3)(2) − (1)(1) = 5', 'cross  z worked as AxBy - AyBx', working(2), '= (3)(2) − (1)(1) = 5');
+
+    // A = [1,2,3], B = [4,5,-1]: (2(-1) - 3*5, 3*4 - 1(-1), 1*5 - 2*4)
+    setVec('A', [1, 2, 3]);
+    setVec('B', [4, 5, -1]);
+    record(result() === '-17,13,-3', 'cross  general A x B', result(), '-17,13,-3');
+    const c = result().split(',').map(Number);
+    record(1 * c[0] + 2 * c[1] + 3 * c[2] === 0 && 4 * c[0] + 5 * c[1] - 1 * c[2] === 0,
+      'cross  A x B is perpendicular to A and B', `${1 * c[0] + 2 * c[1] + 3 * c[2]}, ${4 * c[0] + 5 * c[1] - c[2]}`, '0, 0');
+    record(working(0) === '= (2)(-1) − (3)(5) = -17', 'cross  x worked as AyBz - AzBy', working(0), '= (2)(-1) − (3)(5) = -17');
+
+    // swapped: B x A = -(A x B)
+    setVec('A', [4, 5, -1]);
+    setVec('B', [1, 2, 3]);
+    record(result() === '17,-13,3', 'cross  swapping A and B flips the sign', result(), '17,-13,3');
+
+    // parallel: B = -2A
+    setVec('A', [1, 2, 0]);
+    setVec('B', [-2, -4, 0]);
+    record(result() === '0,0,0', 'cross  parallel vectors give zero', result(), '0,0,0');
+  }
+
+  /* -- bullet hell: the readout's arithmetic, which a frame never has to run for */
+  {
+    // 360 / n between the bullets of a ring
+    record(rowValue('t-radial', 'Angle between') === '360° / 16 = 22.5°', 'radial  16 per ring', rowValue('t-radial', 'Angle between'), '360° / 16 = 22.5°');
+    setSlider('t-radial', 'Bullets per ring', 10);
+    record(rowValue('t-radial', 'Angle between') === '360° / 10 = 36°', 'radial  10 per ring', rowValue('t-radial', 'Angle between'), '360° / 10 = 36°');
+
+    // emitter (0, 2.6), heart (x, -3): aimed straight down, then at atan2(-5.6, 2)
+    record(rowValue('t-aimed', 'Angle') === 'atan2(-5.6, 0) = -90°', 'aimed  heart below: straight down', rowValue('t-aimed', 'Angle'), 'atan2(-5.6, 0) = -90°');
+    record(rowValue('t-aimed2', 'Angle') === 'atan2(-5.6, 2) = -70.3°', 'aimed  heart to the right', rowValue('t-aimed2', 'Angle'), 'atan2(-5.6, 2) = -70.3°');
+
+    // the arrow keys move the heart without also changing slide: reveal.js
+    // listens on the document, and the focused box keeps them from it
+    const box = document.querySelector('#t-aimed .lab-stage');
+    let reached = 0;
+    const count = () => reached++;
+    document.addEventListener('keydown', count);
+    box.focus();
+    box.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    box.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight', bubbles: true }));
+    box.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', bubbles: true }));
+    document.removeEventListener('keydown', count);
+    box.blur();
+    record(reached === 1, 'aimed  arrow keys kept from the slides', `${reached} of 2 reached`, '1 of 2 (only n)');
+
+    // composite: each button adds its pattern, and a second click takes it out
+    const part = (name) => [...document.querySelectorAll('#t-composite .bl-parts .lab-button')].find((b) => b.textContent === name);
+    const inBox = () => rowValue('t-composite', 'In the box');
+    record(inBox() === 'nothing yet', 'composite  starts empty', inBox(), 'nothing yet');
+    part('Spiral').click();
+    part('Aimed').click();
+    record(inBox() === 'Spiral + Aimed', 'composite  buttons add patterns', inBox(), 'Spiral + Aimed');
+    part('Spiral').click();
+    record(inBox() === 'Aimed' && !part('Spiral').classList.contains('is-on'), 'composite  a second click takes it out', inBox(), 'Aimed');
   }
 
   /* -- summary ------------------------------------------------------------ */

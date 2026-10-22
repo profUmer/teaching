@@ -32,3 +32,21 @@ $$ t = \frac{-b \pm sqrt(\text{discriminant})}{2a}$$
 
 <div class="lab-mount" data-lab="ray-sphere"
      data-start="0,0,0" data-dir="1,0,0" data-centre="5,0,0" data-radius="1"></div>
+
+## Ray-Infinitely Long Cylinder intersection
+For an infinitely long cylinder with end cap centre positions $\vec{A}$ and $\vec{B}$,
+and radius $r$ we use this instead:
+
+$$a = \vec{D}^2 - \left(\vec{D} \cdot \widehat{AB}\right)^2$$
+$$b = 2\overrightarrow{AS} \cdot \vec{D} - 2\vec{D} \cdot \widehat{AB}(\widehat{AB} \cdot \overrightarrow{AS})$$
+$$c = \overrightarrow{AS}^2 - \left(\overrightarrow{AS} \cdot \widehat{AB}\right)^2 - r^2$$
+
+where $\overrightarrow{AS}$ is the vector from $\vec{A}$ to $\vec{S}$, and $\widehat{AB}$ is the normalized vector from $\vec{A}$ to $\vec{B}$.
+
+
+Then use the quadratic formula like before!
+
+## Ray-Infinitely Long Cylinder Demo
+
+<div class="lab-mount" data-lab="ray-cylinder"
+     data-start="0,0,0" data-dir="1,0,0" data-end-a="5,0,0" data-end-b="5,3,0" data-radius="1"></div>
