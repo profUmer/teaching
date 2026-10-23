@@ -32,9 +32,11 @@ export function runLoop(el, frame) {
   let visible = false;
   let raf = null;
 
-  const tick = () => {
+  // frame gets the animation frame's timestamp (undefined on the first call):
+  // the same for every lab in a frame, so a lab that time-steps moves evenly
+  const tick = (t) => {
     raf = visible ? requestAnimationFrame(tick) : null;
-    frame();
+    frame(t);
   };
 
   const io = new IntersectionObserver((entries) => {

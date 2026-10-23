@@ -165,6 +165,7 @@ Options, all optional:
 | `data-heart-x` | `bullets` | where the heart starts, across the box (default 0, the middle) |
 | `data-readout` | `bullets` | `true` shows each pattern's formula under the sliders (and, for `composite`, which patterns are in the box) |
 | `data-values` | `bullets` | starting slider values by key, e.g. `rate=2, n=24`; anything past a slider's range is held to its min or max. Every pattern has `rate`; the others: `radial` n · `spiral` turn, arms · `fan` n, spread · `aimed` scatter · `waves` amp, length, n · `grids` gap, turn · `floral` petals, n, spin · `rings` n, gap · `stars` points, inner, n · `intersections` turn · `rain` g, wind · `particles` count, scatter, vary · `homing` turn · `lasers` warn, sweep. `bulletHell.qmd` writes each demo's defaults out in full |
+| `?fps` (on the page's address) | `bullets` | not a data attribute: `bulletHell.html?fps#/spiral` shows, in the box's corner, frames per second, the shortest and longest gap between frames, the longest a frame took to compute and draw, the bullet count and the canvas size - for telling a slow browser from uneven frame timing |
 
 Every slider's number is also a text box: click it to type an exact value
 (Enter or click away to commit, Escape to cancel), rather than only dragging

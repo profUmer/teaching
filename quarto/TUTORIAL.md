@@ -690,6 +690,7 @@ Two errors found in the old sources while converting, both still in the `.tex`:
 | `git worktree remove`: "Deletion of directory ... failed. Should I try again?" | OneDrive is locking files in `.git` (the script no longer uses worktrees, so only by hand) | **n**, then `git worktree prune`; delete any leftover `.git\worktrees\gwt` once the lock clears |
 | `publish.ps1` -VerifyOnly: "The live site does not match this folder" | GitHub has not finished building the last push, or those files changed here since | check the Actions tab; if the build is done, publish them |
 | Boxes (▯) instead of arrows/hats in a lab readout | combining marks (U+20D7, U+0302) are missing from the UI font | spell it out — `N / |N|` rather than `N̂` |
+| Bullet hell demos look shaky on one screen but smooth on another | Windows with monitors at different refresh rates (e.g. a 165 Hz laptop and a 60 Hz external screen) can time the slower screen's windows unevenly; seen 2026-10-23 with Edge on the second monitor | add `?fps` to the address (`bulletHell.html?fps#/spiral`): steady gaps mean the screen is just slower; jumpy gaps mean the mixed-refresh problem, so raise that monitor's refresh rate (Settings > Display > Advanced display), turn on "Optimizations for windowed games" (Settings > Display > Graphics), or make it the main display. Check the classroom projector the same way |
 
 One harmless error appears in the browser console on every deck:
 `Cannot read properties of undefined (reading 'Config')` from

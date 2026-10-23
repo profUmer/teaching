@@ -534,17 +534,46 @@ export function mountBulletLab(el, opts = {}) {
 
   /* Runs only on the slide being shown, and starts over on arriving at it.
      reveal.js keeps the slides either side laid out (just transparent), so
-     runLoop alone would have them already mid-pattern when you get there. */
-  let away = true;
-  function frame() {
+     runLoop alone would have them already mid-pattern when you get there.
+     Off the slide it draws once and then stops, until a resize clears it. */
+  let away = true, stale = true;
+
+  /* ?fps on the page's address (bulletHell.html?fps#/spiral) shows, each
+     second: frames drawn, the shortest and longest gap between them, and the
+     longest a frame took to compute and draw - for telling a slow browser
+     from an uneven one. Only animation frames count, not resizes. */
+  const showFps = new URLSearchParams(location.search).has('fps');
+  const fps = { n: 0, lo: Infinity, hi: 0, work: 0, from: null, prev: null, text: '' };
+  function countFrame(t, began) {
+    if (t == null) return;
+    if (fps.prev != null) { const gap = t - fps.prev; fps.lo = Math.min(fps.lo, gap); fps.hi = Math.max(fps.hi, gap); }
+    fps.prev = t;
+    fps.n++;
+    fps.work = Math.max(fps.work, performance.now() - began);
+    fps.from ??= t;
+    if (t - fps.from >= 1000) {
+      fps.text = `${Math.round((fps.n * 1000) / (t - fps.from))} fps · gaps ${fmt(fps.lo, 1)}–${fmt(fps.hi, 1)} ms · ` +
+        `work ≤ ${fmt(fps.work, 1)} ms · ${S.bullets.length} bullets · ${stage.canvas.width}×${stage.canvas.height} px`;
+      Object.assign(fps, { n: 0, lo: Infinity, hi: 0, work: 0, from: t });
+    }
+  }
+
+  function frame(t) {
+    const began = performance.now();
     if (!stageEl.clientHeight) return;   // not laid out yet: no width to keep the heart in
     const here = onSlide();
+    if (!here && away && !stale) { fps.prev = fps.from = null; return; }
+    stale = false;
     if (here && away) reset();
     away = !here;
-    const now = performance.now() / 1000;
-    // capped, so a stalled frame does not jump the simulation
-    if (here && last != null) step(Math.min(now - last, 0.05));
-    last = here ? now : null;
+    // The animation frame's timestamp, not performance.now(): that varies
+    // with how long the labs before this one took, and uneven steps look
+    // shaky in Chromium (Edge, Chrome). The clock is the same either way.
+    const now = (t ?? performance.now()) / 1000;
+    // capped, so a stalled frame does not jump the simulation; never below
+    // 0, as a resize's frame (no timestamp) can come after the next one's
+    if (here && last != null) step(Math.max(0, Math.min(now - last, 0.05)));
+    last = here ? Math.max(now, last ?? 0) : null;
 
     // Undertale's battle box: black, white bullets, a red heart.
     stage.begin();
@@ -562,16 +591,28 @@ export function mountBulletLab(el, opts = {}) {
 
     ctx.fillStyle = EMITTER_GREY;
     for (const L of layers) for (const e of L.P.emitters ?? [EMITTER]) disc(ctx, e, 0.13);
+    // every bullet in one path and one fill: hundreds of separate fills a
+    // frame are slow in Chromium's canvas
     ctx.fillStyle = '#fff';
-    for (const b of S.bullets) disc(ctx, [b.x, b.y], BULLET_R);
+    ctx.beginPath();
+    for (const b of S.bullets) {
+      ctx.moveTo(b.x + BULLET_R, b.y);
+      ctx.arc(b.x, b.y, BULLET_R, 0, TAU);
+    }
+    ctx.fill();
     ctx.fillStyle = '#8a8f96';
     if (document.activeElement !== stageEl) label(ctx, [0, -VIEW + 0.3], 'click here, then the arrow keys to move', 0.3, 'center');
     ctx.fillStyle = '#e00000';
     heartShape(S.heart, HEART_R * 1.3);
     readout();
+    if (showFps && here) {
+      ctx.fillStyle = '#8a8f96';
+      label(ctx, [-halfW() + 0.2, VIEW - 0.4], fps.text || 'measuring…', 0.26, 'left');
+      countFrame(t, began);
+    }
   }
 
-  new ResizeObserver(() => { if (stage.resize()) frame(); }).observe(stageEl);
+  new ResizeObserver(() => { if (stage.resize()) { stale = true; frame(); } }).observe(stageEl);
   stage.resize();
   frame();
   runLoop(el, frame);
