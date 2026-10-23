@@ -40,6 +40,26 @@ const QUAT_MODES = new Set(['planes', 'parallel']);
 const NUMERIC = ['view', 'cx', 'cy', 'step', 'dp', 'theta', 'kx', 'ky', 'dx', 'dy', 't',
                  'kz', 'dz', 'thetaX', 'thetaY', 'thetaZ', 'yaw', 'pitch', 'd', 'heartX'];
 
+/* A lab's sliders by key: data-values="rate=2, n=24" -> { rate: 2, n: 24 }. */
+function valuesFrom(text) {
+  return Object.fromEntries(text.split(',')
+    .map((kv) => kv.split('=').map((s) => s.trim()))
+    .filter(([k, v]) => k && v !== undefined && v !== '' && !Number.isNaN(Number(v)))
+    .map(([k, v]) => [k, Number(v)]));
+}
+
+/* For the bullet hell composite: each pattern's data-values, from the first
+   demo of that pattern in the document, so the composite starts every
+   pattern as its own slide does. */
+function bulletParts() {
+  const parts = {};
+  for (const d of document.querySelectorAll('.lab-mount[data-lab="bullets"][data-values]')) {
+    const p = d.dataset.pattern;
+    if (p && p !== 'composite' && !(p in parts)) parts[p] = valuesFrom(d.dataset.values);
+  }
+  return parts;
+}
+
 function optionsFrom(el) {
   const opts = {};
   for (const key of NUMERIC) {
@@ -65,6 +85,7 @@ function optionsFrom(el) {
   if (el.dataset.order) opts.order = el.dataset.order;
   if (el.dataset.indices) opts.indices = el.dataset.indices;
   if (el.dataset.readout === 'true') opts.readout = true;
+  if (el.dataset.values) opts.values = valuesFrom(el.dataset.values);
   // ray-sphere / ray-cylinder: 3-vectors and a radius. data-dir, not data-d:
   // that is already the parallel lab's distance, parsed as one number above.
   // data-end-a / data-end-b, not data-a / data-b, which are matmul's matrices -
@@ -115,7 +136,10 @@ function boot() {
       else if (kind === 'ray-sphere') mountRayLab(el, { ...opts, shape: 'sphere' });
       else if (kind === 'ray-cylinder') mountRayLab(el, { ...opts, shape: 'cylinder' });
       else if (kind === 'cross') mountCrossLab(el, opts);
-      else if (kind === 'bullets') mountBulletLab(el, { ...opts, pattern: el.dataset.pattern });
+      else if (kind === 'bullets') {
+        const pattern = el.dataset.pattern;
+        mountBulletLab(el, { ...opts, pattern, ...(pattern === 'composite' && { parts: bulletParts() }) });
+      }
       else if (kind === 'matmul') mountMatmulLab(el, opts);
       else if (kind === 'det') mountDetLab(el, opts);
       else if (kind === 'cofactor') mountCofactorLab(el, opts);

@@ -308,6 +308,80 @@ Lessons:
   verified by a throwaway headless page. Worth adding to `lab-selftest.html`
   next time `matmul-lab.js` is touched.
 
+### 1.6 Game Math 1: `bulletHell` (2026-10-22)
+
+New 17-slide deck, *Bullet Hell Patterns*, committed to `master` (`5995b9b`)
+and in the render list, **not yet published**. Slide 1 credits *Shooting Game
+Algorithm Maniacs* (Matsuura, 2004) and links npaka's write-up; slides 2–15 are
+one pattern each with a `bullets` lab (README.md has the full list and
+options); slide 16, Composite, has a button per pattern instead of sliders.
+The look matches the Undertale-themed assignment: a black box, plain white
+dots, grey for anything that is not a bullet (emitters, the aim line, laser and
+ring warnings), a red heart.
+
+| file | change |
+| --- | --- |
+| `assets/bullet-lab.js` | new: the 15 patterns as a table, and the engine that runs one or several of them as layers |
+| `assets/labs.js` | `data-lab="bullets"`, `data-pattern`, `data-heart-x`, `data-readout`, `data-values` |
+| `assets/slides.css` | `.lab-bullets`: black stage, focus outline, wide slider names, composite's toggle buttons |
+| `lab-selftest.html` | 171 → 183 checks: readout arithmetic, arrow keys kept from reveal.js, composite's buttons, `data-values` |
+
+What the lecturer settled while it was being built (worth keeping for any
+future lab in this style):
+
+- **Sliders only.** Each pattern's formula is still in the code but shown only
+  with `data-readout="true"`; the deck leaves it off. The self-test turns it on.
+- **The write-up describes, it does not specify.** Its one formula is
+  angle = base + i × even angle + sin(t) × fluctuation; every other pattern's
+  maths is ours. Waves was rebuilt from a screenshot of the write-up: rows bent
+  into a *fixed* sine wave falling at a steady speed — not emitters swinging
+  their aim, and no surge or sideways ripple.
+- **No hit counter or hit flash.** A bullet that touches the heart just vanishes.
+- **Every pattern has a rate slider**, labelled for what one firing is (rings,
+  fans, rows ... per second).
+- **Starting values live in the qmd** (2026-10-23): each div carries
+  `data-values="rate=..., n=..."` with every slider's key, so a slide can start
+  a demo anywhere without touching the JS. Keys are listed in README.md.
+- **Second round of tweaks (2026-10-23):** radial lost its per-ring shift (the
+  plain ring; spiral covers turning); spiral's arms capped at 4; waves capped
+  at 1 row/s and gained wavelength and bullets per wave, with "wave height"
+  renamed amplitude; floral and stars gained a bullet count; stars no longer
+  turn; rings have two opposite gaps, because the bullets cross at the centre
+  and a single gap leaves you facing the far side's bullets on the way out;
+  particles now burst in all directions with density, angle range and speed
+  range (the bias slider went).
+- **One laser at a time; composite follows the slides** (2026-10-23): a
+  pattern may have `busy(S)`, and a firing that comes due while it is true
+  waits (lasers: while one is on). Composite takes each pattern's starting
+  values from that pattern's own demo in the deck (labs.js's `bulletParts`).
+
+Lessons:
+
+- **This is the first lab that time-steps**, and it is a partial answer to
+  §2.1 step 4: `runLoop` hosted it unchanged, with the step being real elapsed
+  time capped at 0.05 s. It does *not* go through `lab-mount.js` — a mode's
+  `draw()` display list suits recompute-on-input, a simulation wants its own
+  `step(dt)` — so it uses `makeStage2D` directly. What it did *not* need, and
+  `eqnsOfMotion` still will: a fixed timestep, play/pause/single-step, and
+  determinism (Euler vs Verlet side by side has to diverge the same way every
+  time). That question is still open and still that deck's.
+- **reveal.js keeps the slides either side laid out, only transparent**, so
+  `runLoop`'s IntersectionObserver calls them visible and they animate
+  off-screen. An animated lab must also check it is on `section.present`
+  (`bullet-lab.js`'s `onSlide`), and the bullet labs reset on arriving.
+- **No letter key is free in a deck**: reveal.js takes h/j/k/l and the menu
+  b, c, d, e, f, m, o, r, s. The heart uses the arrow keys only while its box
+  has focus, with `stopPropagation` keeping them from reveal.js's document
+  listener; Esc gives them back. Reuse that for any lab that needs keys.
+- **Headless testing of an animated lab**: `--virtual-time-budget` did not
+  drive `requestAnimationFrame` usefully, so a throwaway page that replaces it
+  with `setTimeout(cb, 16)` was used; with that, `performance.now()` did
+  advance (contrast step 1's note in §2.1, which used the real rAF). Synthetic
+  `KeyboardEvent`s on the focused stage drive the heart.
+- **The book cover is not committed** (`figs/ShootingGameAlgorithmManiacs.png`,
+  the lecturer's call, §3.6) but `publish.ps1` copies every `figs/` file a deck
+  uses, so publishing the deck puts it on the live site.
+
 ---
 
 ## 2. Decisions made
@@ -692,6 +766,12 @@ MIT, slides and figures CC BY-NC-SA — with a NOTICE carving out third-party
 marks and book covers. A repo containing someone else's logo cannot be cleanly
 licensed without that carve-out.
 
+**2026-10-22, the first cover actually displayed:** `bulletHell.qmd` shows
+the cover of *Shooting Game Algorithm Maniacs* on its first slide. The lecturer
+kept `figs/ShootingGameAlgorithmManiacs.png` out of git (it is untracked, not
+ignored - keep it out of any "commit everything"), but it will reach the live
+site with the deck, since `publish.ps1` copies the figures a deck uses.
+
 Related: if §3.3 lands on "do not publish the answers", note that GitHub Pages
 from a **private** repo needs a paid plan. On a free account the realistic
 options are splitting the answers into a separate unpublished deck, or paying.
@@ -987,7 +1067,7 @@ pruned to the seven decks being taught, and the order was confirmed directly
 | # | deck | frames | new work |
 | --- | --- | --- | --- |
 | 1 | `motion` | 11 | **done 2026-08-05** → 18 slides, 4 labs, zero figures (§1.3) |
-| 2 | `eqnsOfMotion` | 22 | 7 EPS + 1 PNG; **the first time-stepping lab belongs here** (projectile motion) |
+| 2 | `eqnsOfMotion` | 22 | 7 EPS + 1 PNG; **the first integrator lab belongs here** (projectile motion) — `bulletHell` got the first time-stepping lab, but not the fixed timestep and play/pause/step this needs (§1.6) |
 | 3 | `newtonsLaws` | 9 | 4 EPS |
 | 4 | `forces` | 20 | 9 EPS |
 | 5 | `drag` | 8 | 2 EPS |
@@ -1042,8 +1122,10 @@ Polytechnic rebrand is applied and rendered (§1).
    a sane pre-term target. **`motion` is done** (§1.3); `eqnsOfMotion` is next,
    and it is the big one — 22 frames, and the deck that settles §2.1 step 4.
 4. **§2.1 step 4 falls out of item 3 for free.** Whichever deck brings the first
-   time-stepping lab answers the `lab-core.js` seam question. Do not attempt the
-   split before that.
+   integrator lab answers the `lab-core.js` seam question. Do not attempt the
+   split before that. (`bulletHell`'s lab time-steps, and showed `runLoop` can
+   host a clock; it did not need a fixed step or play/pause, so the question
+   stands — §1.6.)
 5. **Physics 2**: not this term. The survey in §1.1 is there so it does not have
    to be redone.
 

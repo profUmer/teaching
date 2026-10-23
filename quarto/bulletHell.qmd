@@ -21,91 +21,46 @@ There is a write-up here that can be translated:
 ::::
 
 ## Radial
-
-Spread out from all directions from the centre
-
-<div class="lab-mount" data-lab="bullets" data-pattern="radial"></div>
+<div class="lab-mount" data-lab="bullets" data-pattern="radial" data-values="rate=0.4, n=10"></div>
 
 ## Spiral
-
-Rotate the firing angle
-
-<div class="lab-mount" data-lab="bullets" data-pattern="spiral"></div>
+<div class="lab-mount" data-lab="bullets" data-pattern="spiral" data-values="rate=10, turn=10, arms=1"></div>
 
 ## Fan
+<div class="lab-mount" data-lab="bullets" data-pattern="fan" data-values="rate=0.4, n=5, spread=60"></div>
 
-Like radial, but in one direction
+## Aimed
+<div class="lab-mount" data-lab="bullets" data-pattern="aimed" data-values="rate=1, scatter=0"></div>
 
-<div class="lab-mount" data-lab="bullets" data-pattern="fan"></div>
-
-## Aimed Shots
-
-Based on players positions
-
-<div class="lab-mount" data-lab="bullets" data-pattern="aimed"></div>
-
-## Waves/Curtains
-
-A wave shape that surges forward
-
-<div class="lab-mount" data-lab="bullets" data-pattern="waves"></div>
+## Sine Waves
+<div class="lab-mount" data-lab="bullets" data-pattern="waves" data-values="rate=0.2, amp=0.8, length=5, n=20"></div>
 
 ## Grids
+<div class="lab-mount" data-lab="bullets" data-pattern="grids" data-values="rate=0.5, gap=2, turn=0"></div>
 
-Align them along x and y for a regular grid, or rotate to create a diamond pattern
-
-<div class="lab-mount" data-lab="bullets" data-pattern="grids"></div>
-
-## Floral Patterns
-
-Flower like designs
-
-<div class="lab-mount" data-lab="bullets" data-pattern="floral"></div>
+## Flowers
+<div class="lab-mount" data-lab="bullets" data-pattern="floral" data-values="rate=0.2, petals=5, n=40, spin=0"></div>
 
 ## Rings
+<div class="lab-mount" data-lab="bullets" data-pattern="rings" data-values="rate=0.2, n=20, gap=3"></div>
 
-A ring that expands out or converges back in
-
-<div class="lab-mount" data-lab="bullets" data-pattern="rings"></div>
-
-## Star shapes
-
-Pick specific vertices and angles to make stars or polygons
-
-<div class="lab-mount" data-lab="bullets" data-pattern="stars"></div>
+## Stars
+<div class="lab-mount" data-lab="bullets" data-pattern="stars" data-values="rate=0.2, points=5, inner=0.4, n=30"></div>
 
 ## Intersections
-
-Overlapping bullet streams 
-
-<div class="lab-mount" data-lab="bullets" data-pattern="intersections"></div>
+<div class="lab-mount" data-lab="bullets" data-pattern="intersections" data-values="rate=7, turn=10"></div>
 
 ## Rain
-
-Fall due to gravity downwards
-
-<div class="lab-mount" data-lab="bullets" data-pattern="rain"></div>
+<div class="lab-mount" data-lab="bullets" data-pattern="rain" data-values="rate=5, g=3.5, wind=0"></div>
 
 ## Particles
+<div class="lab-mount" data-lab="bullets" data-pattern="particles" data-values="rate=0.5, count=40, scatter=10, vary=0.2"></div>
 
-Scattered bullets
-
-<div class="lab-mount" data-lab="bullets" data-pattern="particles"></div>
-
-## Homing and Trajectory Changes
-
-Bullets that curve towards the player
-
-<div class="lab-mount" data-lab="bullets" data-pattern="homing"></div>
+## Homing
+<div class="lab-mount" data-lab="bullets" data-pattern="homing" data-values="rate=0.4, turn=180"></div>
 
 ## Lasers
+<div class="lab-mount" data-lab="bullets" data-pattern="lasers" data-values="rate=0.5, warn=1.0, sweep=10"></div>
 
-Straight lines
-
-<div class="lab-mount" data-lab="bullets" data-pattern="lasers"></div>
-
-## Composite
-
-Combine multiple patterns
-
+## Combine Them All!
 <div class="lab-mount" data-lab="bullets" data-pattern="composite"></div>

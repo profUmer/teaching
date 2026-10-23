@@ -80,9 +80,23 @@ Content.
 ```
 
 That is a complete deck. Everything else — theme, footer, slide numbers,
-chalkboard, the lab script — is inherited from `_quarto.yml`, which
-applies to every `.qmd` in this folder. You do not repeat the preamble in each
-deck the way you did in each `.tex`.
+chalkboard, the lab script — is inherited from `_quarto.yml`. You do not
+repeat the preamble in each deck the way you did in each `.tex`.
+
+**But only once the deck is in `_quarto.yml`'s `render:` list.** A deck not
+listed there renders bare — no theme, no footer, no labs, just empty space
+where each demo should be — and overwrites any good HTML it had. Add it to the
+list before the first render. The full checklist for a new deck:
+
+1. **`_quarto.yml`**: add `- kinematics.qmd` to `render:`.
+2. **`.gitignore`**: add `kinematics.html` and `kinematics_files/` beside the
+   other decks', so the rendered output is never committed.
+3. **`index.html`**: add a card in the right course's section, copying a
+   neighbour — and check its `</a>` closes it before the next card starts.
+4. **Commit the source** (`git add` the `.qmd` and anything new in `assets/`),
+   leaving out third-party images you only want local (PLAN.md §3.6).
+5. **Publish** with `pwsh -File tools\publish.ps1 kinematics -DryRun` to see
+   what would change, then again without `-DryRun` (§8).
 
 ### The edit loop
 
@@ -315,7 +329,7 @@ Two levels, and it is worth doing both after any change to `assets/*.js`.
 <http://localhost:8000/lab-selftest.html>. It mounts every lab, synthesises
 real pointer drags and slider moves, reads the numbers back out of the panels,
 and compares them against values worked out by hand. You want
-`all 181 checks passed` in green at the top. This covers what a screenshot
+`all 183 checks passed` in green at the top. This covers what a screenshot
 cannot: that a handle can be grabbed, that dragging updates the readout, and
 that the arithmetic is right at more than one position. It also asserts each
 lab was drawn by Canvas 2D, since the readouts alone cannot tell you that.
@@ -381,6 +395,7 @@ through `serve.cmd` or `quarto preview`.
 | `o` or `esc` | slide overview grid |
 | `←` `→` | previous / next |
 | `.` | black the screen |
+| click a bullet hell box, then `←` `↑` `→` `↓` | move the heart; the arrows stop changing slide until `esc` or a click elsewhere |
 
 The chalkboard is worth a minute of practice. For a math class it replaces the
 document camera — you can derive on top of a slide and it is retained while you

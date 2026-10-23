@@ -79,6 +79,9 @@
   <div class="lab-mount" id="t-aimed" data-lab="bullets" data-pattern="aimed" data-readout="true"></div>
   <div class="lab-mount" id="t-aimed2" data-lab="bullets" data-pattern="aimed" data-heart-x="2" data-readout="true"></div>
   <div class="lab-mount" id="t-composite" data-lab="bullets" data-pattern="composite" data-readout="true"></div>
+  <!-- data-values starts the sliders off their defaults; 100 is past the max of 40 -->
+  <div class="lab-mount" id="t-radial-set" data-lab="bullets" data-pattern="radial" data-values="n=12, rate=2" data-readout="true"></div>
+  <div class="lab-mount" id="t-radial-max" data-lab="bullets" data-pattern="radial" data-values="n=100" data-readout="true"></div>
 </div>
 
 <script type="module">
@@ -211,7 +214,7 @@ async function waitUntil(fn, timeout = 4000) {
 }
 
 const ready = () => waitUntil(() =>
-  document.querySelectorAll('.rig canvas').length === 20
+  document.querySelectorAll('.rig canvas').length === 22
   && document.querySelectorAll('#t-reflect .lab-value-row').length > 0
   && document.querySelectorAll('#t-accel .lab-value-row').length > 0
   && document.querySelector('#t-planes canvas')?.dataset.p2
@@ -805,6 +808,17 @@ async function run() {
     record(rowValue('t-radial', 'Angle between') === '360° / 16 = 22.5°', 'radial  16 per ring', rowValue('t-radial', 'Angle between'), '360° / 16 = 22.5°');
     setSlider('t-radial', 'Bullets per ring', 10);
     record(rowValue('t-radial', 'Angle between') === '360° / 10 = 36°', 'radial  10 per ring', rowValue('t-radial', 'Angle between'), '360° / 10 = 36°');
+
+    // data-values="n=12, rate=2": the sliders start there, not at 16 and 1.2;
+    // n=100 is held to the slider's max of 40
+    const sliderOut = (labId, labelText) => [...document.querySelectorAll(`#${labId} .lab-slider`)]
+      .find((r) => r.querySelector('.lab-slider-name').textContent.trim() === labelText)
+      ?.querySelector('.lab-slider-value').value;
+    const setRate = sliderOut('t-radial-set', 'Rings per second');
+    record(rowValue('t-radial-set', 'Angle between') === '360° / 12 = 30°' && setRate === '2.0',
+      'radial  data-values sets the sliders', `${rowValue('t-radial-set', 'Angle between')}, rate ${setRate}`, '360° / 12 = 30°, rate 2.0');
+    record(rowValue('t-radial-max', 'Angle between') === '360° / 40 = 9°', 'radial  data-values held to the max',
+      rowValue('t-radial-max', 'Angle between'), '360° / 40 = 9°');
 
     // emitter (0, 2.6), heart (x, -3): aimed straight down, then at atan2(-5.6, 2)
     record(rowValue('t-aimed', 'Angle') === 'atan2(-5.6, 0) = -90°', 'aimed  heart below: straight down', rowValue('t-aimed', 'Angle'), 'atan2(-5.6, 0) = -90°');
