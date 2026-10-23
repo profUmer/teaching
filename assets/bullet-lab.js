@@ -21,7 +21,8 @@
  * runLoop calls frame() every animation frame while the slide is visible, and
  * frame() advances the simulation by the real time since the last one.
  *
- * A pattern is { rate, sliders, fire(S), info?(S), draw?(S), step?(S, dt) }.
+ * A pattern is { rate, sliders, fire(S), info?(S), draw?(S), step?(S, dt),
+ * busy?(S) }; while busy is true a firing that comes due waits.
  * rate is the slider for how many times a second fire runs, labelled for
  * what one firing is (a ring, a fan, a bullet). fire spawns bullets with
  * S.shoot; angles are radians, 0 = right, -PI/2 = straight down. S is the
@@ -49,8 +50,6 @@ const BULLET_R = 0.09;
 const HEART_R = 0.17;
 const EMITTER_GREY = '#555';
 const HEART_SPEED = 4;   // world units per second, while an arrow key is held
-const WAVE_K = TAU / 3;   // waves: one wavelength every 3 units across
-const WAVE_GAP = 0.45;    // waves: space between neighbouring dots in a row
 
 /* The direction from p to the heart, as an angle: atan2(dy, dx). */
 const aimAt = (S, p = EMITTER) => Math.atan2(S.heart[1] - p[1], S.heart[0] - p[0]);
@@ -65,15 +64,13 @@ function turnToward(have, want, max) {
 const ring = (n, base = 0) => Array.from({ length: n }, (_, i) => base + (TAU * i) / n);
 
 const PATTERNS = {
-  /* A ring of n bullets, 360/n degrees apart; each ring shifted a little
-     from the last, so the gaps do not line up. */
+  /* A ring of n bullets, 360/n degrees apart. */
   radial: {
     sliders: [
       { key: 'n', label: 'Bullets per ring', min: 4, max: 40, step: 1, value: 16, format: whole },
-      { key: 'shift', label: 'Shift per ring (°)', min: 0, max: 30, step: 1, value: 6, format: whole },
     ],
     rate: { label: 'Rings per second', min: 0.2, max: 4, value: 1.2 },
-    fire: (S) => ring(S.o.n, rad(S.shot * S.o.shift)).forEach((a) => S.shoot(a, 1.5)),
+    fire: (S) => ring(S.o.n).forEach((a) => S.shoot(a, 1.5)),
     info: (S) => [['Angle between bullets', `360° / ${S.o.n} = ${fmt(360 / S.o.n, 1)}°`]],
   },
 
@@ -81,7 +78,7 @@ const PATTERNS = {
   spiral: {
     sliders: [
       { key: 'turn', label: 'Turn per shot (°)', min: 0, max: 60, step: 1, value: 17, format: whole },
-      { key: 'arms', label: 'Arms', min: 1, max: 6, step: 1, value: 1, format: whole },
+      { key: 'arms', label: 'Arms', min: 1, max: 4, step: 1, value: 1, format: whole },
     ],
     rate: { label: 'Bullets per second', min: 2, max: 40, value: 16 },
     fire: (S) => ring(S.o.arms, rad(S.shot * S.o.turn)).forEach((a) => S.shoot(a, 1.8)),
@@ -122,21 +119,26 @@ const PATTERNS = {
   },
 
   /* A curtain: whole rows of bullets, each bent into the same sine wave,
-     y = row + A sin(kx), falling together at a steady speed - a wall to
-     slip through rather than shots to dodge. */
+     y = row + A sin(2π x / wavelength), falling together at a steady speed -
+     a wall to slip through rather than shots to dodge. A row's n bullets are
+     spread evenly across the box, from a little past either side. */
   waves: {
-    rate: { label: 'Rows per second', min: 0.2, max: 2, value: 0.6 },
+    rate: { label: 'Rows per second', min: 0.2, max: 1, value: 0.6 },
     sliders: [
-      { key: 'amp', label: 'Wave height (A)', min: 0, max: 0.8, step: 0.05, value: 0.3, format: (v) => v.toFixed(2) },
+      { key: 'amp', label: 'Amplitude', min: 0, max: 0.8, step: 0.05, value: 0.3, format: (v) => v.toFixed(2) },
+      { key: 'length', label: 'Wavelength', min: 1, max: 8, step: 0.5, value: 3, format: one },
+      { key: 'n', label: 'Bullets per wave', min: 5, max: 60, step: 1, value: 33, format: whole },
     ],
     fire: (S) => {
-      for (let x = -S.halfW - 0.5; x <= S.halfW + 0.5; x += WAVE_GAP) {
+      const k = TAU / S.o.length, edge = S.halfW + 0.5;
+      for (let i = 0; i < S.o.n; i++) {
+        const x = -edge + (2 * edge * i) / (S.o.n - 1);
         // start above the box, clear of the wave
-        S.shoot(DOWN, 1, { from: [x, VIEW + 1 + S.o.amp * Math.sin(WAVE_K * x)] });
+        S.shoot(DOWN, 1, { from: [x, VIEW + 1 + S.o.amp * Math.sin(k * x)] });
       }
     },
     emitters: [],
-    info: (S) => [['Each bullet', `y = row + ${S.o.amp.toFixed(2)} sin(${fmt(WAVE_K, 2)}x)`]],
+    info: (S) => [['Each bullet', `y = row + ${S.o.amp.toFixed(2)} sin(2π x / ${one(S.o.length)})`]],
   },
 
   /* A lattice: rows of evenly spaced bullets marching in together. Rotate the
@@ -168,12 +170,13 @@ const PATTERNS = {
   floral: {
     sliders: [
       { key: 'petals', label: 'Petals', min: 3, max: 8, step: 1, value: 5, format: whole },
+      { key: 'n', label: 'Bullets per flower', min: 12, max: 120, step: 1, value: 72, format: whole },
       { key: 'spin', label: 'Turn per flower (°)', min: 0, max: 36, step: 1, value: 12, format: whole },
     ],
     rate: { label: 'Flowers per second', min: 0.2, max: 3, value: 0.7 },
     fire: (S) => {
       const base = rad(S.shot * S.o.spin);
-      for (const a of ring(72, base)) {
+      for (const a of ring(S.o.n, base)) {
         S.shoot(a, 1.6 * (0.4 + 0.6 * Math.abs(Math.cos((S.o.petals * (a - base)) / 2))));
       }
     },
@@ -181,7 +184,10 @@ const PATTERNS = {
   },
 
   /* A ring that appears around the heart - after a warning circle - and
-     closes in on it, then out the other side. Slip through the gap. */
+     closes in on it, then out the other side. It has two gaps, right and
+     left: the bullets cross over at the centre, so the far side's bullets
+     come back out through the side you slipped out of, and only the gap
+     opposite the first lets you past them too. */
   rings: {
     sliders: [
       { key: 'n', label: 'Bullets per ring', min: 12, max: 40, step: 1, value: 28, format: whole },
@@ -190,11 +196,11 @@ const PATTERNS = {
     rate: { label: 'Rings per second', min: 0.1, max: 1.5, value: 0.4 },
     fire: (S) => {
       const c = [...S.heart], R = 2.4;
-      const gapAt = S.shot % 2 ? 0 : Math.PI;   // the gap alternates right, left
       S.warn({ c, r: R }, 0.7, () => {
-        for (const a of ring(S.o.n, gapAt)) {
-          const i = Math.round(((a - gapAt) / TAU) * S.o.n);
-          if (i < S.o.gap / 2 || i > S.o.n - S.o.gap / 2) continue;
+        for (const a of ring(S.o.n)) {
+          // how many bullets round from the nearer gap, at 0° or 180°
+          const off = Math.min(a % Math.PI, Math.PI - (a % Math.PI)) / (TAU / S.o.n);
+          if (off < S.o.gap / 2 - 1e-9) continue;
           const dir = [Math.cos(a), Math.sin(a)];
           S.shoot(a + Math.PI, 1.4, { from: [c[0] + dir[0] * R, c[1] + dir[1] * R] });
         }
@@ -205,28 +211,34 @@ const PATTERNS = {
   },
 
   /* A star traced out by bullets, each moving away from the centre at a speed
-     proportional to its distance, so the star grows without changing shape. */
+     proportional to its distance, so the star grows without changing shape.
+     The n bullets are spaced evenly along its outline. */
   stars: {
     sliders: [
       { key: 'points', label: 'Points', min: 3, max: 8, step: 1, value: 5, format: whole },
       { key: 'inner', label: 'Inner radius', min: 0.2, max: 1, step: 0.05, value: 0.4, format: (v) => v.toFixed(2) },
+      { key: 'n', label: 'Bullets per shape', min: 10, max: 120, step: 1, value: 60, format: whole },
     ],
     rate: { label: 'Stars per second', min: 0.2, max: 3, value: 0.7 },
     fire: (S) => {
-      const k = S.o.points, spin = S.shot * 0.3;
-      // vertices alternate outer (1) and inner radius; inner = cos(180°/k) is a plain polygon
-      const verts = ring(2 * k, DOWN + spin).map((a, i) => {
+      // vertices alternate outer (1) and inner radius, a point straight down;
+      // inner = cos(180°/points) is a plain polygon
+      const verts = ring(2 * S.o.points, DOWN).map((a, i) => {
         const r = i % 2 ? S.o.inner : 1;
         return [r * Math.cos(a), r * Math.sin(a)];
       });
-      const perEdge = 6;
-      verts.forEach((p, i) => {
-        const q = verts[(i + 1) % verts.length];
-        for (let j = 0; j < perEdge; j++) {
-          const t = j / perEdge, x = p[0] + (q[0] - p[0]) * t, y = p[1] + (q[1] - p[1]) * t;
-          S.shoot(Math.atan2(y, x), 1.7 * Math.hypot(x, y));
-        }
-      });
+      const edges = verts.map((p, i) => [p, verts[(i + 1) % verts.length]]);
+      const lengths = edges.map(([p, q]) => Math.hypot(q[0] - p[0], q[1] - p[1]));
+      const gap = lengths.reduce((a, b) => a + b) / S.o.n;
+      // walk round the outline, a bullet every `gap` along it
+      let e = 0, along = 0;
+      for (let j = 0; j < S.o.n; j++) {
+        while (e < edges.length - 1 && along > lengths[e]) { along -= lengths[e]; e++; }
+        const [p, q] = edges[e], t = along / lengths[e];
+        const x = p[0] + (q[0] - p[0]) * t, y = p[1] + (q[1] - p[1]) * t;
+        S.shoot(Math.atan2(y, x), 1.7 * Math.hypot(x, y));
+        along += gap;
+      }
     },
     info: (S) => [['Vertices', `${2 * S.o.points}, alternating radius 1 and ${S.o.inner.toFixed(2)}`]],
   },
@@ -260,31 +272,25 @@ const PATTERNS = {
 
   /* Sparks, or stardust: "rather than completely random, it looks beautiful
      if you give the angle, speed and density a certain range or bias." Each
-     burst is `count` bullets; each one's angle and speed are random within a
-     range, and the bias squeezes those randoms toward the middle of it, so
-     most sparks fly near the centre line at a middling speed and a few
-     stray. Drag slows them and they fade, as sparks do. */
+     burst flies out in all directions from the emitter: `count` bullets (the
+     density), evenly spaced round the circle, but each one's angle knocked
+     off its place by up to the angle range and its speed random within the
+     speed range. Drag slows them and they fade, as sparks do. */
   particles: {
     rate: { label: 'Bursts per second', min: 0.2, max: 4, value: 1.1 },
     sliders: [
-      { key: 'count', label: 'Bullets per burst', min: 4, max: 60, step: 1, value: 30, format: whole },
-      { key: 'spread', label: 'Angle range (°)', min: 10, max: 360, step: 5, value: 120, format: whole },
+      { key: 'count', label: 'Density (bullets)', min: 4, max: 80, step: 1, value: 40, format: whole },
+      { key: 'scatter', label: 'Angle range (± °)', min: 0, max: 45, step: 1, value: 8, format: whole },
       { key: 'vary', label: 'Speed range (±)', min: 0, max: 1, step: 0.05, value: 0.5, format: (v) => v.toFixed(2) },
-      { key: 'bias', label: 'Bias to the centre', min: 0, max: 1, step: 0.05, value: 0.6, format: (v) => v.toFixed(2) },
     ],
     fire: (S) => {
-      // a random number in [-1, 1], pulled toward 0 as the bias grows:
-      // raising |u| to a power above 1 shrinks everything but the extremes
-      const biased = () => {
-        const u = between(-1, 1);
-        return Math.sign(u) * Math.abs(u) ** (1 + 3 * S.o.bias);
-      };
-      for (let i = 0; i < S.o.count; i++) {
-        const a = DOWN + rad((S.o.spread / 2) * biased());
-        S.shoot(a, 2.6 * (1 + S.o.vary * biased()), { ay: -0.4, drag: 0.4, life: 3.5 });
+      // a fresh turn each burst, so the bursts do not line up
+      for (const a of ring(S.o.count, between(0, TAU))) {
+        const speed = 2 * (1 + S.o.vary * between(-1, 1));
+        S.shoot(a + rad(between(-S.o.scatter, S.o.scatter)), speed, { ay: -0.4, drag: 0.4, life: 3.5 });
       }
     },
-    info: (S) => [['Angle', `−90° + ${S.o.spread / 2}° × biased random`], ['Speed', `2.6 × (1 + ${S.o.vary.toFixed(2)} × biased random)`]],
+    info: (S) => [['Angle', `360° × i / ${S.o.count} ± ${S.o.scatter}°`], ['Speed', `2 × (1 ± ${S.o.vary.toFixed(2)})`]],
   },
 
   /* Bullets that turn toward the heart, but by at most `turn` degrees per
@@ -317,7 +323,11 @@ const PATTERNS = {
       { key: 'warn', label: 'Warning (s)', min: 0.2, max: 1.5, step: 0.1, value: 0.8, format: one },
       { key: 'sweep', label: 'Sweep speed (°/s)', min: 0, max: 30, step: 1, value: 30, format: whole },
     ],
-    rate: { label: 'Lasers per second', min: 0.1, max: 2, value: 0.5 },
+    // A laser lasts its warning plus a 1.5 s beam (up to 3 s), so one is
+    // still on when the next comes due at any but the slowest rate; busy
+    // holds that one back until the box is clear: one laser at a time.
+    rate: { label: 'Lasers per second', min: 0.1, max: 0.5, value: 0.4 },
+    busy: (S) => S.lasers.length > 0,
     fire: (S) => {
       S.lasers.push({ a: aimAt(S), born: S.time, warn: S.o.warn, beam: 1.5 });
     },
@@ -345,8 +355,10 @@ const PATTERNS = {
 };
 
 /* Composite has no pattern of its own: a button per pattern above adds it to
-   the box at its default settings (click again to take it out), so any mix
-   can be built up live. No sliders - a dozen patterns' worth would bury it. */
+   the box (click again to take it out), so any mix can be built up live. No
+   sliders - a dozen patterns' worth would bury it. Each pattern starts as its
+   own slide's demo does: labs.js hands over those demos' data-values as
+   opts.parts, { pattern: { key: value } }. */
 const COMPOSITE_PARTS = [
   ['radial', 'Radial'], ['spiral', 'Spiral'], ['fan', 'Fan'], ['aimed', 'Aimed'],
   ['waves', 'Waves'], ['grids', 'Grids'], ['floral', 'Floral'], ['rings', 'Rings'],
@@ -354,8 +366,10 @@ const COMPOSITE_PARTS = [
   ['particles', 'Particles'], ['homing', 'Homing'], ['lasers', 'Lasers'],
 ];
 
-/* A pattern's settings as its sliders start them. */
-const defaults = (P) => Object.fromEntries([['rate', P.rate.value], ...P.sliders.map((s) => [s.key, s.value])]);
+/* A pattern's settings as its sliders start them: the slider defaults, with
+   any of `set` (a data-values) over the top, held within each slider's range. */
+const defaults = (P, set = {}) => Object.fromEntries([{ key: 'rate', ...P.rate }, ...P.sliders]
+  .map((s) => [s.key, Math.min(s.max, Math.max(s.min, set[s.key] ?? s.value))]));
 
 export function mountBulletLab(el, opts = {}) {
   const composite = opts.pattern === 'composite';
@@ -404,7 +418,7 @@ export function mountBulletLab(el, opts = {}) {
       const b = button(controls, name, () => {
         const at = layers.findIndex((L) => L.P === PATTERNS[key]);
         if (at >= 0) layers.splice(at, 1);
-        else layers.push(layer(PATTERNS[key], defaults(PATTERNS[key])));
+        else layers.push(layer(PATTERNS[key], defaults(PATTERNS[key], opts.parts?.[key])));
         b.classList.toggle('is-on', at < 0);
         readout();
       });
@@ -413,7 +427,10 @@ export function mountBulletLab(el, opts = {}) {
     const L = layer(P, {});
     layers.push(L);
     for (const sl of [{ key: 'rate', step: 0.1, format: one, ...P.rate }, ...P.sliders]) {
-      slider(controls, sl, (v) => { L.o[sl.key] = v; readout(); });
+      // data-values="rate=2, n=24" starts a slider off its default; the range
+      // input keeps the value between the slider's min and max
+      const value = opts.values?.[sl.key] ?? sl.value;
+      slider(controls, { ...sl, value }, (v) => { L.o[sl.key] = v; readout(); });
     }
   }
 
@@ -477,6 +494,8 @@ export function mountBulletLab(el, opts = {}) {
       const every = 1 / L.o.rate;
       if (L.clock === Infinity) L.clock = every;   // fire on the first frame
       while (L.clock >= every) {
+        // still busy with the last one (a laser): wait, and fire once it is done
+        if (L.P.busy?.(L)) { L.clock = every; break; }
         L.clock -= every;
         L.P.fire(L);
         L.shot++;
