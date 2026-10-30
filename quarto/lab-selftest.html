@@ -928,6 +928,12 @@ async function run() {
 
     record(verdict() === 'capA', 'capped  hits cap A', verdict(), 'capA');
     record(v('Q =') === '(4, 1.7, 0)', 'capped  shows where: Q', v('Q ='), '(4, 1.7, 0)');
+    // P under the discriminant: on the infinite cylinder, but not the hit
+    const rowOf = (name) => [...lab.querySelectorAll('.lab-value-row')].find((r) => r.textContent.trim().startsWith(name));
+    record(v('P =') === '(2.4, 2.5, 0)' && rowOf('P =').classList.contains('ray-fail'), 'capped  P shown, red: not the hit',
+      `${v('P =')} ${rowOf('P =').className}`, '(2.4, 2.5, 0) ... ray-fail');
+    const keys = [...lab.querySelectorAll('.lab-value-key')].map((k) => k.textContent.trim()[0]).join('');
+    record(keys.startsWith('dP'), 'capped  P right under the discriminant', keys, 'dP...');
     record(rowsNow() === '-4.8 – 3 4 0.2', 'capped  cap A checks', rowsNow(), '-4.8 – 3 4 0.2');
     record(lab.querySelector('.ray-verdict').textContent === 'Hits end cap A at Q', 'capped  says so',
       lab.querySelector('.ray-verdict').textContent, 'Hits end cap A at Q');
@@ -936,6 +942,12 @@ async function run() {
     // leaves the cylinder before x = 4 - Q = [4,-2.3,0], |AQ| = 3.8: a miss
     set(['Dy'], [-1.5]);
     record(verdict() === 'miss' && v('‖') === '3.8', 'capped  outside r: a miss', `${verdict()} ${v('‖')}`, 'miss 3.8');
+    // Q still shows, in red, worked out before the |AQ| check
+    const qRow = () => [...lab.querySelectorAll('.lab-value-row')].find((r) => r.textContent.trim().startsWith('Q ='));
+    record(v('Q =') === '(4, -2.3, 0)' && qRow().classList.contains('ray-fail'), 'capped  missed Q in red',
+      `${v('Q =')} ${qRow().className}`, '(4, -2.3, 0) ... ray-fail');
+    const order = [...lab.querySelectorAll('.lab-value-key')].map((k) => k.textContent.trim()[0]).join('');
+    record(order.endsWith('tQ‖'), 'capped  Q before the |AQ| check', order, '...tQ‖');
     // heading away, D = [-1,-0.5,0]: P = [-2.4,2.5,0] short of A, D.AB = -3
     set(['Dx', 'Dy'], [-1, -0.5]);
     record(verdict() === 'miss' && v('D') === '-3' && v('t') === '–', 'capped  heading away: a miss',
@@ -944,7 +956,8 @@ async function run() {
     set(['Sx', 'Dx'], [3, 1]);
     record(verdict() === 'side' && v('AP') === '4.2' && v('BP') === '4.8', 'capped  between the planes: the side',
       `${verdict()} ${v('AP')} ${v('BP')}`, 'side 4.2 4.8');
-    record(v('P =') === '(5.4, 2.5, 0)', 'capped  shows where: P', v('P ='), '(5.4, 2.5, 0)');
+    record(v('P =') === '(5.4, 2.5, 0)' && rowOf('P =').classList.contains('ray-pass') && v('Q =') === '–',
+      'capped  side: P green, no Q', `${v('P =')} ${rowOf('P =').className} ${v('Q =')}`, '(5.4, 2.5, 0) ... ray-pass –');
     // from the other end, S = [10,3.2,0], D = [-1,-0.5,0]: P = [8.6,2.5,0]
     // past B, BP.BA = (1.6)(-3) = -4.8, D.BA = 3, t = 3, Q = [7,1.7,0]
     set(['Sx', 'Sy', 'Dx'], [10, 3.2, -1]);

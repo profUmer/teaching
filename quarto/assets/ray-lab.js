@@ -211,20 +211,23 @@ const SHAPES = {
    rows after the first two name the cap P is outside of. */
 function cappedRows(h, st, discRow) {
   const X = h.cap ?? 'A', Y = X === 'A' ? 'B' : 'A';
-  const at = h.cap ? 'Q' : 'P';
   const check = (v, ok) => (v === undefined
     ? ['–', 'ray-check ray-skip']
     : [fmt(v), `ray-check ${ok ? 'ray-pass' : 'ray-fail'}`]);
+  // A point, written out as soon as it is known - P from the quadratic, Q
+  // from t, before the checks that use it - green if it turns out to be the
+  // hit, red if not.
+  const point = (name, p) => [`${V(name)} =`, p ? `(${p.map((x) => fmt(x)).join(', ')})` : '–',
+    `ray-check ray-point ${!p ? 'ray-skip' : p === h.hitAt ? 'ray-pass' : 'ray-fail'}`];
   return [
     discRow,
+    point('P', h.P),
     [`${V('AP')} · ${V('AB')} < 0`, ...check(h.apab, h.apab < 0)],
     [`${V('BP')} · ${V('BA')} < 0`, ...check(h.bpba, h.bpba < 0)],
     [`${V('D')} · ${V(X + Y)} > 0`, ...check(h.dxy, h.dxy > 0)],
     ['<i>t</i>', h.t === undefined ? '–' : fmt(h.t), `ray-check${h.t === undefined ? ' ray-skip' : ''}`],
+    point('Q', h.Q),
     [`‖${V(X + 'Q')}‖ ≤ <i>r</i>`, ...check(h.xq, h.xq <= st.r)],
-    // where it hits: P on the side, Q on a cap
-    [`${V(at)} =`, h.hitAt ? `(${h.hitAt.map((x) => fmt(x)).join(', ')})` : '–',
-      `ray-check ray-point ${h.hitAt ? 'ray-pass' : 'ray-skip'}`],
   ];
 }
 
