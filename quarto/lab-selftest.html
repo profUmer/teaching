@@ -73,7 +73,9 @@
   <div class="lab-mount" id="t-cyl" data-lab="ray-cylinder"
        data-start="0,0,0" data-dir="1,0,0" data-end-a="5,0,0" data-end-b="5,3,0" data-radius="1"></div>
   <!-- Math 1, vector operations: the cross product. -->
-  <div class="lab-mount" id="t-cross" data-lab="cross" data-vec-a="3,1,0" data-vec-b="1,2,0"></div>
+  <div class="lab-mount" id="t-cross" data-lab="cross" data-vec-a="3,1,0" data-vec-b="1,2,0" data-readout="true"></div>
+  <!-- Math 1, vector operations: the dot product. -->
+  <div class="lab-mount" id="t-dotp" data-lab="dot-product" data-vec-a="2,3" data-vec-b="4,1"></div>
   <!-- Math 1, bullet hell: a radial ring, and shots aimed at the heart. -->
   <div class="lab-mount" id="t-radial" data-lab="bullets" data-pattern="radial" data-readout="true"></div>
   <div class="lab-mount" id="t-aimed" data-lab="bullets" data-pattern="aimed" data-readout="true"></div>
@@ -166,6 +168,31 @@ function dragChip(fromChip, toChip) {
   fromChip.dispatchEvent(new PointerEvent('pointerup',   { ...base, ...to }));
 }
 
+/* The same for orbit3d.js's views, from world point to world point: the
+   mapping mirrors its default camera (yaw -32, pitch 22, eye 45 from the
+   origin, origin a fifth of the half-height below centre) at half-height
+   `view`, and is only right before anything orbits or zooms. */
+function drag3d(labId, from, to, { view }) {
+  const canvas = document.getElementById(labId).querySelector('canvas');
+  const r = canvas.getBoundingClientRect();
+  const yaw = -32 * Math.PI / 180, pitch = 22 * Math.PI / 180;
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const right = [cy, 0, sy], up = [sp * sy, cp, -sp * cy], back = [-cp * sy, sp, cp * cy];
+  const d = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
+  const screen = (p) => {
+    const k = 45 / (45 - d(p, back));
+    const perPx = r.height / (2 * view);   // CSS pixels per view unit
+    return {
+      clientX: r.left + r.width / 2 + d(p, right) * k * perPx,
+      clientY: r.top + r.height * 0.6 - d(p, up) * k * perPx,
+    };
+  };
+  const base = { bubbles: true, cancelable: true, pointerId: 3, pointerType: 'mouse', isPrimary: true };
+  canvas.dispatchEvent(new PointerEvent('pointerdown', { ...base, ...screen(from) }));
+  canvas.dispatchEvent(new PointerEvent('pointermove', { ...base, ...screen(to) }));
+  canvas.dispatchEvent(new PointerEvent('pointerup',   { ...base, ...screen(to) }));
+}
+
 function orderChipEls(labId) {
   return [...document.getElementById(labId).querySelectorAll('.lab-order-chip')];
 }
@@ -214,7 +241,7 @@ async function waitUntil(fn, timeout = 4000) {
 }
 
 const ready = () => waitUntil(() =>
-  document.querySelectorAll('.rig canvas').length === 22
+  document.querySelectorAll('.rig canvas').length === 23
   && document.querySelectorAll('#t-reflect .lab-value-row').length > 0
   && document.querySelectorAll('#t-accel .lab-value-row').length > 0
   && document.querySelector('#t-planes canvas')?.dataset.p2
@@ -228,6 +255,7 @@ const ready = () => waitUntil(() =>
   && document.querySelectorAll('#t-ray .lab-value-row').length === 4
   && document.querySelectorAll('#t-cyl .lab-value-row').length === 4
   && document.getElementById('t-cross').dataset.result
+  && document.getElementById('t-dotp').dataset.dot
   && document.querySelectorAll('#t-aimed .lab-value-row').length > 0);
 
 /* ------------------------------------------------------------------ tests --- */
@@ -247,7 +275,7 @@ async function run() {
      context, so this stays as a guard against anything reintroducing one.
      See PLAN.md 2.1. */
   for (const id of ['polar', 'add', 'dot', 'reflect', '2d',
-                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel', 'ray', 'cyl', 'cross', 'radial', 'aimed']) {
+                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel', 'ray', 'cyl', 'cross', 'dotp', 'radial', 'aimed']) {
     const canvas = document.getElementById(`t-${id}`).querySelector('canvas');
     const kind = canvas.getContext('2d') ? 'canvas2d' : 'webgl';
     record(kind === 'canvas2d', `${id.padEnd(8)} drawn by Canvas 2D`, kind, 'canvas2d');
@@ -791,6 +819,14 @@ async function run() {
       'cross  A x B is perpendicular to A and B', `${1 * c[0] + 2 * c[1] + 3 * c[2]}, ${4 * c[0] + 5 * c[1] - c[2]}`, '0, 0');
     record(working(0) === '= (2)(-1) − (3)(5) = -17', 'cross  x worked as AyBz - AzBy', working(0), '= (2)(-1) − (3)(5) = -17');
 
+    // the button: B x A = -(A x B), worked with B first, and back again
+    const swap = lab.querySelector('.cross-swap');
+    swap.click();
+    record(result() === '17,-13,3', 'cross  button shows B x A', result(), '17,-13,3');
+    record(working(0) === '= (5)(3) − (-1)(2) = 17', 'cross  x worked as ByAz - BzAy', working(0), '= (5)(3) − (-1)(2) = 17');
+    swap.click();
+    record(result() === '-17,13,-3', 'cross  button back to A x B', result(), '-17,13,-3');
+
     // swapped: B x A = -(A x B)
     setVec('A', [4, 5, -1]);
     setVec('B', [1, 2, 3]);
@@ -800,6 +836,73 @@ async function run() {
     setVec('A', [1, 2, 0]);
     setVec('B', [-2, -4, 0]);
     record(result() === '0,0,0', 'cross  parallel vectors give zero', result(), '0,0,0');
+
+    // dragging A's tip one unit up the screen moves it along the camera's up,
+    // (-0.199, 0.927, -0.318) at the default angle: (3,1,0) -> (2.8,1.9,-0.3)
+    setVec('A', [3, 1, 0]);
+    setVec('B', [1, 2, 0]);
+    const sl = (name) => [...lab.querySelectorAll('.lab-slider')]
+      .find((r) => r.querySelector('.lab-slider-name').textContent.trim() === name).querySelector('input').value;
+    const a = () => ['Ax', 'Ay', 'Az'].map(sl).join(',');
+    drag3d('t-cross', [3, 1, 0], [3 - 0.1985, 1 + 0.9272, -0.3177], { view: 4 });
+    record(a() === '2.8,1.9,-0.3', 'cross  drag A tip across the screen', a(), '2.8,1.9,-0.3');
+    // a drag that starts away from both tips orbits instead
+    drag3d('t-cross', [-3, 0, -3], [-2, 0, -3], { view: 4 });
+    record(a() === '2.8,1.9,-0.3', 'cross  drag off the tips leaves A', a(), '2.8,1.9,-0.3');
+    // back to the parallel pair, for the checks below
+    setVec('A', [1, 2, 0]);
+    setVec('B', [-2, -4, 0]);
+
+    // beside the view: the components of A, B and the product shown
+    const shown = () => [...lab.querySelectorAll('.cross-components .cross-vector')].map((e) => e.textContent).join(' ');
+    record(shown() === '(1, 2, 0) (-2, -4, 0) (0, 0, 0)', 'cross  components of A, B, A x B', shown(), '(1, 2, 0) (-2, -4, 0) (0, 0, 0)');
+    // the widest product the sliders allow still fits its fixed-width column
+    setVec('A', [-3.5, 4.8, -2.4]);
+    setVec('B', [2.3, -0.1, -2.4]);
+    const box = lab.querySelector('.cross-components');
+    record(shown().endsWith('(-11.76, -13.92, -10.69)') && box.scrollWidth <= box.clientWidth,
+      'cross  widest product fits', `${box.scrollWidth} <= ${box.clientWidth}`, 'fits');
+  }
+
+  /* -- dot product: A . B, the angle, and a length along the other ------- */
+  {
+    const lab = document.getElementById('t-dotp');
+    const d = lab.dataset;
+    const setVec = (letter, v) => ['x', 'y'].forEach((a, i) => setSlider('t-dotp', letter + a, v[i]));
+    const swap = lab.querySelector('.dot-swap');
+
+    // A = [2,3], B = [4,1]: 8 + 3 = 11, and 11 / |B| = 11 / sqrt(17) along B
+    record(d.dot === '11' && d.along === '2.67', 'dotp  A.B and A along B', `${d.dot} ${d.along}`, '11 2.67');
+    record(d.angle === '42.3', 'dotp  angle between', d.angle, '42.3');
+    const shown = () => [...lab.querySelectorAll('.cross-components .cross-vector')].map((e) => e.textContent).join(' ');
+    // (A.B^)B^ = 11/17 (4, 1)
+    record(shown().endsWith('(2.59, 0.65)'), 'dotp  (A.B^)B^ shown', shown(), '... (2.59, 0.65)');
+    // the button: B along A is 11 / |A| = 11 / sqrt(13), and A.B stays 11
+    swap.click();
+    record(d.dot === '11' && d.along === '3.05', 'dotp  button: B along A', `${d.dot} ${d.along}`, '11 3.05');
+    swap.click();
+    record(d.along === '2.67', 'dotp  button back: A along B', d.along, '2.67');
+
+    // dragging A's tip from (2, 3) to (1, 4) moves its sliders: 4 + 4 = 8
+    drag('t-dotp', [2, 3], [1, 4], { view: 5.5 });
+    const sl = (name) => [...lab.querySelectorAll('.lab-slider')]
+      .find((r) => r.querySelector('.lab-slider-name').textContent.trim() === name).querySelector('input').value;
+    record(sl('Ax') === '1' && sl('Ay') === '4' && d.dot === '8', 'dotp  drag A tip moves sliders', `${sl('Ax')} ${sl('Ay')} ${d.dot}`, '1 4 8');
+    // x runs to ±10, the width of the view; y past ±5 stops at the end
+    drag('t-dotp', [4, 1], [7.3, 5.4], { view: 5.5 });
+    record(sl('Bx') === '7.3' && sl('By') === '5', 'dotp  drag: x to 10, y clamps at 5', `${sl('Bx')} ${sl('By')}`, '7.3 5');
+    setVec('B', [4, 1]);
+
+    // perpendicular: zero, at 90 degrees
+    setVec('A', [-1, 4]);
+    record(d.dot === '0' && d.along === '0' && d.angle === '90', 'dotp  perpendicular gives 0', `${d.dot} ${d.along} ${d.angle}`, '0 0 90');
+    // past 90 degrees: negative, so the length along B points backwards
+    setVec('A', [-3, 1]);
+    record(d.dot === '-11' && d.along === '-2.67', 'dotp  obtuse goes negative', `${d.dot} ${d.along}`, '-11 -2.67');
+    // B = 0: no angle, no direction to measure along
+    setVec('B', [0, 0]);
+    record(d.dot === '0' && d.along === '–' && d.angle === '–', 'dotp  zero B: no angle', `${d.dot} ${d.along} ${d.angle}`, '0 – –');
+    record(shown() === '(-3, 1) (0, 0) – 0 – –', 'dotp  values beside the view', shown(), '(-3, 1) (0, 0) – 0 – –');
   }
 
   /* -- bullet hell: the readout's arithmetic, which a frame never has to run for */

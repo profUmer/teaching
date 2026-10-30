@@ -14,8 +14,8 @@
  * or quat-lab.js (two reflections making a rotation, for the quaternion decks)
  * or blade-lab.js (simplifying a product of basis vectors like e01123)
  * or ray-lab.js (the ray-sphere and ray-cylinder quadratics' a, b, c and
- * discriminant, beside a 3D view) or cross-lab.js (A x B, worked out and
- * drawn in 3D) or bullet-lab.js (bullet hell patterns and a heart to dodge
+ * discriminant, beside a 3D view) or cross-lab.js (A x B and B x A,
+ * drawn in 3D) or dot-lab.js (A . B and A's length along B, in 2D) or bullet-lab.js (bullet hell patterns and a heart to dodge
  * them, which time-steps rather than recomputing on a drag). Keeping
  * one entry point means one scan of the document and no chance of two
  * modules both claiming the same div.
@@ -31,6 +31,7 @@ import { mountQuatLab } from './quat-lab.js';
 import { mountBladeLab } from './blade-lab.js';
 import { mountRayLab } from './ray-lab.js';
 import { mountCrossLab } from './cross-lab.js';
+import { mountDotLab } from './dot-lab.js';
 import { mountBulletLab } from './bullet-lab.js';
 
 const VECTOR_MODES = new Set(['polar', 'add', 'dot', 'reflect']);
@@ -136,6 +137,7 @@ function boot() {
       else if (kind === 'ray-sphere') mountRayLab(el, { ...opts, shape: 'sphere' });
       else if (kind === 'ray-cylinder') mountRayLab(el, { ...opts, shape: 'cylinder' });
       else if (kind === 'cross') mountCrossLab(el, opts);
+      else if (kind === 'dot-product') mountDotLab(el, opts);
       else if (kind === 'bullets') {
         const pattern = el.dataset.pattern;
         mountBulletLab(el, { ...opts, pattern, ...(pattern === 'composite' && { parts: bulletParts() }) });
