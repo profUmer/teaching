@@ -33,15 +33,9 @@ B_x & B_y & B_z
 
 Take the dot product between two vectors to find out something about the angle between them. 
 
-$$\vec{A} \cdot \vec{B} = \|\vec{A}\|\|\vec{B}\|\cos \theta$$
+$$\vec{A} \cdot \vec{B} = \|\vec{A}\|\|\vec{B}\|\cos \theta= A_xB_x + A_yB_y$$
 
 where $\|\vec{A}\|$ and $\|\vec{B}\|$ are the magnitude of the two vectors and $\theta$ is the angle between them.
-
-. . .
-
-Amazingly, the formula above is the same as:
-
-$$\vec{A} \cdot \vec{B} = A_xB_x + A_yB_y$$
 
 . . .
 
@@ -49,7 +43,11 @@ Dot product is also great to figure out the length of one vector "along" another
 
 $$\text{Length of }\vec{A} \text{ along } \vec{B} = \vec{A} \cdot \hat{B}$$
 
-where $\hat{B}$ is the normalized version of $\vec{B}$. Point along that length by multiplying by vector's direction:
+where $\hat{B}$ is the normalized version of $\vec{B}$. 
+
+. . .
+
+Point along that length by multiplying by vector's direction:
 
 $$\vec{A} \text{ projected onto } \vec{B} = (\vec{A} \cdot \hat{B})\hat{B}$$
 
