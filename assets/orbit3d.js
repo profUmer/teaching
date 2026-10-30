@@ -131,7 +131,7 @@ export function makeOrbitView(stageEl, opts, paint) {
     const halfW = v * (canvas.width / canvas.height);
     const top = v * (1 + LIFT) - 0.1 * v;
     ctx.fillStyle = typeof colour === 'number' ? css(colour) : colour;
-    label(ctx, [-halfW + 0.1 * v, top - line * W.hint * 1.8], text, size, 'left', 0, line > 0);
+    label(ctx, [-halfW + 0.1 * v, top - line * W.hint * 1.8], text, size, 'left', 0, true);
   };
 
   view.repaint = () => { if (canvas.width && canvas.height) paint(); };
