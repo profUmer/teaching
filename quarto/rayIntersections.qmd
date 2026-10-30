@@ -50,3 +50,41 @@ Then use the quadratic formula like before!
 
 <div class="lab-mount" data-lab="ray-cylinder"
      data-start="0,0,0" data-dir="1,0,0" data-end-a="5,0,0" data-end-b="5,3,0" data-radius="1"></div>
+
+## Ray-Cylinder intersection
+
+Ok, say you've got an intersection with the really long cylinder. What about the end caps?
+
+First check if you are outside the plane of end cap A:
+
+$$ \vec{AP} \cdot \vec{AB} < 0$$
+
+If that passes, then check if the ray is actually heading towards end cap A:
+
+$$ \vec{D} \cdot \vec{AB} > 0 $$
+
+If that passes, check where the ray hits the plane of end cap A:
+
+$$ t = -\frac{\vec{AS}\cdot\vec{AB}}{\vec{D}\cdot{\vec{AB}}}$$
+
+## Ray-Cylinder intersection
+
+Use the $t$ parameter to find a point $\vec{Q}$ on the plane:
+
+$$ \vec{Q} = \vec{S} + t\vec{D}$$
+
+Finally check whether that's within the radius of the cylinder:
+
+$$ \|\vec{AQ} \| \leq r$$
+
+If all those checks worked, you hit end cap A! 
+
+If not, rinse and repeat for end cap B (careful, the dot checks will look a bit different). 
+
+And if you aren't outside the plane of end caps A or B, then it turns out the ray-infinite cylinder intersection was correct after all!
+
+## Ray-Cylinder intersection demo
+
+<div class="lab-mount" data-lab="ray-capped"
+     data-start="0,4.1,0" data-dir="1,-0.5,0" data-end-a="4,1.5,0" data-end-b="7,1.5,0" data-radius="1"
+     data-yaw="35" data-view="3.6"></div>

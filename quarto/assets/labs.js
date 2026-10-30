@@ -14,7 +14,7 @@
  * or quat-lab.js (two reflections making a rotation, for the quaternion decks)
  * or blade-lab.js (simplifying a product of basis vectors like e01123)
  * or ray-lab.js (the ray-sphere and ray-cylinder quadratics' a, b, c and
- * discriminant, beside a 3D view) or cross-lab.js (A x B and B x A,
+ * discriminant, beside a 3D view, and the capped cylinder's end cap checks) or cross-lab.js (A x B and B x A,
  * drawn in 3D) or dot-lab.js (A . B and A's length along B, in 2D) or bullet-lab.js (bullet hell patterns and a heart to dodge
  * them, which time-steps rather than recomputing on a drag). Keeping
  * one entry point means one scan of the document and no chance of two
@@ -136,6 +136,7 @@ function boot() {
       else if (kind === 'blades') mountBladeLab(el, opts);
       else if (kind === 'ray-sphere') mountRayLab(el, { ...opts, shape: 'sphere' });
       else if (kind === 'ray-cylinder') mountRayLab(el, { ...opts, shape: 'cylinder' });
+      else if (kind === 'ray-capped') mountRayLab(el, { ...opts, shape: 'capped' });
       else if (kind === 'cross') mountCrossLab(el, opts);
       else if (kind === 'dot-product') mountDotLab(el, opts);
       else if (kind === 'bullets') {
