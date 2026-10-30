@@ -367,10 +367,21 @@
 .lab-ray .lab-controls { gap: 0.25rem; }
 .ray-group-title { font-weight: 600; color: #8d1b1b; margin-bottom: 0.2rem; white-space: nowrap; }
 .lab-ray .lab-slider { grid-template-columns: 2.2em minmax(0, 1fr) 3.4em; }
+/* cross-lab.js and dot-lab.js: each vector's title, sliders and values in
+   its arrow's colour (lab-core.js's accentA and accentB) */
+.ray-group.vec-a { --vec: #c0392b; }
+.ray-group.vec-b { --vec: #1f6fb2; }
+:is(.vec-a, .vec-b) .ray-group-title,
+:is(.vec-a, .vec-b) .lab-slider-name,
+:is(.vec-a, .vec-b) .lab-slider-value { color: var(--vec); }
+:is(.vec-a, .vec-b) .lab-slider-value:focus { border-color: var(--vec); }
+:is(.vec-a, .vec-b) .lab-slider input[type="range"] { accent-color: var(--vec); }
 .ray-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.4rem; align-items: center; margin-top: 0.7rem; }
 .reveal .lab-ray .lab-stage { height: 345px; }
 .lab-ray .lab-canvas { touch-action: none; cursor: grab; }
 .lab-ray .lab-canvas.grabbing { cursor: grabbing; }
+/* over a tip that drags rather than the view (orbit3d.js's handles) */
+.lab-ray .lab-canvas.over-handle { cursor: move; }
 .ray-out { display: flex; flex-direction: column; align-items: stretch; gap: 0.8rem; }
 .ray-out .lab-buttons { justify-content: flex-end; }
 .lab-ray .lab-values { font-size: 1.3em; max-width: none; gap: 0.3rem; }
@@ -403,17 +414,40 @@
 }
 /* over two letters, as \overrightarrow{AS}: the same arrow, stretched */
 .ray-vec.ray-wide::after { transform: scaleX(2.1); }
-/* cross-lab.js: the ray labs' layout (it carries .lab-ray too), with its own
-   readout - the result, then each component worked out under its formula.
-   A fixed width, sized for the widest numbers the sliders allow, so the 3D
-   view beside it never resizes as they change. */
+/* cross-lab.js: the ray labs' layout (it carries .lab-ray too), with the
+   components of A, B and the product beside the view (and, with
+   data-readout="true", each component of the product worked out under its
+   formula) in .cross-out: a fixed width, sized for the widest numbers the
+   sliders allow, so the 3D view beside it never resizes as they change. */
 .cross-out { width: 21.5em; }
 /* three slider rows, not four: the view gets the height back */
 .reveal .lab-cross .lab-stage { height: 410px; }
-.cross-result { font-size: 1.1em; font-weight: 600; white-space: nowrap; }
-.cross-vector { font-family: var(--r-code-font, monospace); color: #1d7a4c; }
+.cross-components {
+  display: grid; grid-template-columns: auto 1fr; column-gap: 0.5em; row-gap: 0.35em;
+  align-items: baseline; font-size: 1.1em; font-weight: 600; white-space: nowrap;
+}
+.cross-components .cross-name { justify-self: end; }
+.cross-vector { font-family: var(--r-code-font, monospace); }
 .cross-working { display: grid; grid-template-columns: auto 1fr; column-gap: 0.5em; row-gap: 0.1em; }
 .cross-name { font-weight: 600; }
+/* dot-lab.js: the cross lab's layout and value column (it reuses .cross-out
+   and .cross-components), in 2D: two slider rows, so a taller view, and
+   the tips dragged like the vector labs' rather than the view orbited. */
+.reveal .lab-dot-product .lab-stage { height: 450px; }
+.lab-dot-product .lab-canvas { cursor: default; }
+.lab-dot-product .lab-canvas.over-handle { cursor: grab; }
+.lab-dot-product .lab-canvas.grabbing { cursor: grabbing; }
+/* \hat drawn in CSS, as .ray-vec draws \vec */
+.dot-hat { position: relative; display: inline-block; font-style: italic; }
+.dot-hat::after {
+  content: "^";
+  position: absolute;
+  left: 0; right: 0; top: -0.5em;
+  font-size: 0.85em;
+  text-align: center;
+  font-style: normal;
+  line-height: 1;
+}
 .cross-numbers {
   grid-column: 2;
   margin-bottom: 0.45em;

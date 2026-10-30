@@ -183,6 +183,28 @@ B_x &amp; B_y &amp; B_z
 <div class="lab-mount" data-lab="cross" data-vec-a="3,1,0" data-vec-b="1,2,0">
 
 </div>
+</section>
+<section id="dot-product" class="slide level2">
+<h2>Dot Product</h2>
+<p>Take the dot product between two vectors to find out something about the angle between them.</p>
+<p><span class="math display">\[\vec{A} \cdot \vec{B} = \|\vec{A}\|\|\vec{B}\|\cos \theta\]</span></p>
+<p>where <span class="math inline">\(\|\vec{A}\|\)</span> and <span class="math inline">\(\|\vec{B}\|\)</span> are the magnitude of the two vectors and <span class="math inline">\(\theta\)</span> is the angle between them.</p>
+<div class="fragment">
+<p>Amazingly, the formula above is the same as:</p>
+<p><span class="math display">\[\vec{A} \cdot \vec{B} = A_xB_x + A_yB_y\]</span></p>
+</div>
+<div class="fragment">
+<p>Dot product is also great to figure out the length of one vector “along” another vector:</p>
+<p><span class="math display">\[\text{Length of }\vec{A} \text{ along } \vec{B} = \vec{A} \cdot \hat{B}\]</span></p>
+<p>where <span class="math inline">\(\hat{B}\)</span> is the normalized version of <span class="math inline">\(\vec{B}\)</span>. Point along that length by multiplying by vector’s direction:</p>
+<p><span class="math display">\[\vec{A} \text{ projected onto } \vec{B} = (\vec{A} \cdot \hat{B})\hat{B}\]</span></p>
+</div>
+</section>
+<section id="dot-product-demo" class="slide level2">
+<h2>Dot Product Demo</h2>
+<div class="lab-mount" data-lab="dot-product" data-vec-a="2,3" data-vec-b="4,1">
+
+</div>
 
 </section>
     </div>

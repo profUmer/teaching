@@ -15,6 +15,11 @@
  * camera for this frame and returns line widths scaled to the zoom, then
  * draws with view.xy() / view.project(). A lab also calls paint itself when
  * its own sliders change.
+ *
+ * A lab can also hand over points to drag (opts.handles, opts.onDrag): a
+ * press near one drags it instead of orbiting, in the plane through it that
+ * faces the screen, so the point follows the pointer at any camera angle.
+ * Orbit to move it toward or away from you.
  */
 
 import { C } from './lab-core.js';
@@ -33,6 +38,8 @@ const AXIS_COLOUR = { x: C.basisX, y: C.basisY, z: C.result };
  * default the origin), dist (eye distance from the target, default 45 -
  * far enough that the perspective stays gentle), lift (how far below centre
  * the target sits, as a fraction of half-height, default 0.2).
+ * handles: () => [points] - where the draggable points are now
+ * onDrag: (i, point) - handle i was dragged to point
  */
 export function makeOrbitView(stageEl, opts, paint) {
   const yaw0 = opts.yaw ?? -32;
@@ -129,26 +136,77 @@ export function makeOrbitView(stageEl, opts, paint) {
 
   view.repaint = () => { if (canvas.width && canvas.height) paint(); };
 
+  /* --- dragging a lab's points -------------------------------------------- */
+  /* The pointer in view units, the space project() returns - the inverse of
+     begin()'s transform. */
+  const pointer = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const px = (e.clientX - r.left) * (canvas.width / r.width);
+    const py = (e.clientY - r.top) * (canvas.height / r.height);
+    const k = canvas.height / (2 * cam.view);
+    return [(px - canvas.width / 2) / k, -(py - canvas.height * (0.5 + LIFT / 2)) / k];
+  };
+  // the nearest handle within 22 CSS pixels of the pointer, or -1
+  const pick = (e) => {
+    if (!opts.handles || !view.axes) return -1;
+    const [sx, sy] = pointer(e);
+    const r = canvas.getBoundingClientRect();
+    const tol = 22 * (2 * cam.view) / r.height;
+    let best = -1, bestD = tol;
+    opts.handles().forEach((p, i) => {
+      const [hx, hy] = view.xy(p);
+      const d = Math.hypot(hx - sx, hy - sy);
+      if (d < bestD) { best = i; bestD = d; }
+    });
+    return best;
+  };
+  /* Back from the screen to the world, on the plane facing the camera at the
+     grabbed point's depth: at a fixed depth the perspective scale is fixed
+     too, so this undoes project() exactly. */
+  const unproject = ([sx, sy], depth) => {
+    const { right, up, back } = view.axes;
+    const k = DIST / Math.max(DIST - depth, 0.5);
+    return [0, 1, 2].map((i) => target[i] + (right[i] * sx + up[i] * sy) / k + back[i] * depth);
+  };
+
   /* --- orbit and zoom ------------------------------------------------------ */
   /* Neither changes anything a lab computes: moving the camera changes the
      picture, not the vectors. */
-  let orbit = null;
+  let orbit = null, held = null;
   canvas.addEventListener('pointerdown', (e) => {
-    orbit = { x: e.clientX, y: e.clientY, yaw: cam.yaw, pitch: cam.pitch };
+    const i = pick(e);
+    if (i >= 0) {
+      // hold on where on the dot it was grabbed, so it does not jump
+      const p = opts.handles()[i];
+      const [sx, sy] = pointer(e), [hx, hy] = view.xy(p);
+      held = { i, depth: dot(sub(p, target), view.axes.back), off: [hx - sx, hy - sy] };
+    } else {
+      orbit = { x: e.clientX, y: e.clientY, yaw: cam.yaw, pitch: cam.pitch };
+    }
     try { canvas.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     canvas.classList.add('grabbing');
     e.preventDefault();
   });
   canvas.addEventListener('pointermove', (e) => {
-    if (!orbit) return;
+    if (held) {
+      const [sx, sy] = pointer(e);
+      opts.onDrag(held.i, unproject([sx + held.off[0], sy + held.off[1]], held.depth));
+      e.preventDefault();
+      return;
+    }
+    if (!orbit) {
+      canvas.classList.toggle('over-handle', pick(e) >= 0);
+      return;
+    }
     cam.yaw = orbit.yaw + rad((e.clientX - orbit.x) * 0.4);
     cam.pitch = clamp(orbit.pitch + rad((e.clientY - orbit.y) * 0.4), rad(-85), rad(85));
     view.repaint();
     e.preventDefault();
   });
   const release = (e) => {
-    if (!orbit) return;
+    if (!orbit && !held) return;
     orbit = null;
+    held = null;
     canvas.classList.remove('grabbing');
     if (e.pointerId !== undefined && canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
   };
