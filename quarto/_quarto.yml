@@ -11,6 +11,7 @@ project:
     - rayIntersections.qmd
     - vectorOperations.qmd
     - bulletHell.qmd
+    - slice.qmd
   # No `type: website`, so this is a plain project - which is why
   # `quarto publish gh-pages` refuses it: Quarto publishes a plain project
   # only while it has exactly one deck to render (TUTORIAL.md §8). Publish

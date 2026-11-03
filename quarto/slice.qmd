@@ -1,0 +1,26 @@
+---
+title: "Unity"
+subtitle: "Slicing 2D and 3D Shapes"
+institute: "Faculty of Media, Creative Arts, and Design, Humber Polytechnic"
+format:
+  revealjs:
+    footer: "Unity, Umer Noor, PhD"
+---
+## 2D Slice
+Say your slice goes from point $P$ towards direction $D$. If you are cool with Geometric Algebra, then the slice line can be written using the join product ($\vee$):
+
+$$ L_{\text{world}} = P \vee D$$
+
+Put this line into the model space of the object being cut using the sandwich with the motor $M$ that takes you from world to model space:
+
+$$ L_{\text{model}} = ML_{\text{world}}M^{-1}$$
+
+Use Math2d's orientedDist(vertex, lineModel) function to determine which vertices belong to shapes created after the slice.
+
+Add extra vertices to both shapes when the line cuts through an edge.
+
+## 2D Slice Demo
+
+<div class="lab-mount" data-lab="slice" data-card="1.2,0,20" data-cut="-3,-1.5,25"></div>
+
+## 3D Slice

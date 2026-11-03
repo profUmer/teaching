@@ -1,6 +1,6 @@
 # Project status and plan
 
-Last updated: 2026-10-09
+Last updated: 2026-11-01 (§1.7, the Unity `slice` deck)
 
 Where the Beamer → Quarto migration stands, what is decided, and what is still
 open. [README.md](README.md) is the reference for using what exists;
@@ -381,6 +381,96 @@ Lessons:
 - **The book cover is not committed** (`figs/ShootingGameAlgorithmManiacs.png`,
   the lecturer's call, §3.6) but `publish.ps1` copies every `figs/` file a deck
   uses, so publishing the deck puts it on the live site.
+
+### 1.7 Unity: `slice` (2026-10-31) — in progress
+
+Deck *Slicing 2D and 3D Shapes*, footer "Unity, Umer Noor, PhD". Explains the
+cut in **Cut the Deck** (A1, Week 2) and, later, **Slice the Beat**'s mesh
+slicer (A2, Week 5). **Committed to `master` 2026-11-03, not yet on
+`gh-pages`.** `slice.qmd` is in the render list, `index.html` has its card
+under "Unity", and `.gitignore` covers `slice.html` and `slice_files/`.
+
+Where the code being explained lives (outside this repo):
+
+- `C:\Users\NoorU\UnityCourse\sandbox\CutCard\Assets\_Cards\Scripts\` —
+  `Cutter.cs` (`Split`), `Card.cs` (`Cut`: the swipe as a `Line2d`, sandwiched
+  into model space), `Math2d.cs` (the PGA port: join `&`, `Sandwich`,
+  `OrientedDist`), `CutBench.cs` (the still-card test, green/red Gizmos).
+- `C:\Users\NoorU\UnityCourse\saber-course-materials\reference\build-guide-snapshot.md`
+  — "Week 2: Cut for real" (Cut the Deck) and the Week 5 `MeshSlicer` section
+  (Slice the Beat), with the student bugs worth showing.
+
+Slides so far:
+
+| slide | state |
+| --- | --- |
+| 2D Slice | text: $L = P \vee D$, the sandwich $ML_{world}M^{-1}$, sides by `OrientedDist`, the edge walk |
+| 2D Slice Demo | the `slice` lab (below) — **done, checked by the lecturer** |
+| 3D Slice | **empty** |
+
+The `slice` lab, one step per **Next** (reworked 2026-11-01 at the
+lecturer's request): the cut in world space, with $P$, $D$ ($x\,e_{20} + y\,e_{01} + w\,e_{12}$)
+and $L_{world}$ ($a\,e_1 + b\,e_2 + c\,e_0$) written
+out → animated into the card's model space, with the motor $M$ (real
+$+ e_{01} + e_{02} + e_{12}$) and both lines written out. $M$
+and the sandwich are ported formula for formula from Math2d.cs, as
+`Card.Cut` builds them, so the numbers match Unity's → each vertex's side, with only $L_{model}$ written out (grey drops, green = a on the normal's
+side, red = b), and only now do the lists a and b appear → one edge per Next,
+the lists growing as "Shape on one side / the other side of the cut
+contains vertices: X, 2, 3, Y" → the halves rotated back
+into world space, still together, "Back in world space" → "Push shape a along
+the normal, push shape b the other way", with the normal drawn on the cut
+between them. On each edge step
+the panel shows the two signed distances as $d_i$, $d_j$, named for their
+vertices (Split's `du` and `dv` read like UV coordinates), then on a crossing
+edge `t = d₁ / (d₁ − d₂) = 0.68` (the formula, then only its value) and
+"X = Lerp from Vertex 1 to Vertex 2 using t". The UV lerp is no longer
+mentioned. README.md has the options
+(`data-card`, `data-cut`).
+
+| file | change |
+| --- | --- |
+| `assets/slice-lab.js` | new |
+| `assets/labs.js` | `data-lab="slice"`, `data-card`, `data-cut` |
+| `assets/slides.css` | `.lab-slice`: panel width, caption, the working block, slider colours |
+| `lab-selftest.html` | 227 → 237 checks: the lists at each step, a missed cut, dragging P and D, the motor $M$ and $L_{model}$ against Math2d's numbers; last step is 8 since the 2026-11-01 rework |
+| `_quarto.yml`, `.gitignore` | `slice.qmd` added |
+
+Decided while building it:
+
+- **The t formula is shown on purpose.** It is the exception to "values yes,
+  calculations no" (§1.6): the formula stays, but since 2026-11-01 only its
+  value goes beside it, not the numbers substituted in, and the lerp is said
+  in words.
+- Card art is drawn in code (a plain ace of spades), not Kenney's PNGs, so
+  nothing third-party is in the deck.
+- The normal $(-D_y, D_x)$, left of the swipe, is what Math2d's join gives;
+  side a is the normal's side, as in `Cutter.Split`.
+
+**To do next time:**
+
+1. **The 3D Slice slide** — text, then a demo. Natural shape: the same steps
+   for `MeshSlicer.Slice` — a plane in object space, signed distances per
+   vertex, a triangle that crosses split into three, the crossing points
+   collected and fan-triangulated into the cap. Probably on `orbit3d.js` (the
+   cross and ray labs' 3D stage). Show the bugs the build guide lists: winding
+   of a split triangle, vertices on the plane, plane left in world space.
+2. Proofread the 2D Slice text slide against the lab: it says "Vertices on
+   one side of the line's normal goes" (→ "go"), and could name the lists a
+   and b to match the demo.
+3. Maybe a slide on the UV lerp alone (the build guide's demo: without it
+   each half stretches the whole card over itself).
+4. When ready: commit `slice.qmd`, `assets/slice-lab.js` and the shared files
+   (staged by path, as TUTORIAL.md §8 *Publishing only some decks* says), then `pwsh -File tools\publish.ps1 slice`.
+
+Lesson: launching headless Edge from the shell to screenshot a lab (as in
+§1.6) can trip Claude Code's safety prompt; the lecturer checked this one by
+hand with `serve.cmd` instead. (2026-11-01: headless Chrome ran without a
+prompt. It does not advance `requestAnimationFrame` under
+`--virtual-time-budget`, so the lab's world/model animations froze
+mid-way; a throwaway page that iframes `slice.html#/2`, swaps the iframe's
+`requestAnimationFrame` for a 16 ms `setTimeout` and clicks **Next** *n*
+times gave true end-state screenshots.)
 
 ---
 

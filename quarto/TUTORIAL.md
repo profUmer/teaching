@@ -329,7 +329,7 @@ Two levels, and it is worth doing both after any change to `assets/*.js`.
 <http://localhost:8000/lab-selftest.html>. It mounts every lab, synthesises
 real pointer drags and slider moves, reads the numbers back out of the panels,
 and compares them against values worked out by hand. You want
-`all 183 checks passed` in green at the top. This covers what a screenshot
+`all 237 checks passed` in green at the top. This covers what a screenshot
 cannot: that a handle can be grabbed, that dragging updates the readout, and
 that the arithmetic is right at more than one position. It also asserts each
 lab was drawn by Canvas 2D, since the readouts alone cannot tell you that.

@@ -660,3 +660,35 @@ html.print-pdf .lab-stage { height: 400px; min-height: 0; }
    ::: {.big-math} and it is drawn half again as large (display math is
    already centred). */
 .reveal .big-math { font-size: 1.5em; margin-top: 1em; }
+
+/* slice-lab.js: the dot lab's layout, with the step in words and Split's two
+   point lists beside the view. The card's sliders in its outline's near-black,
+   the cut's in its blue. */
+.reveal .lab-slice .lab-stage { height: 430px; }
+.lab-slice .lab-canvas { cursor: default; }
+.lab-slice .lab-canvas.over-handle { cursor: grab; }
+.lab-slice .lab-canvas.grabbing { cursor: grabbing; }
+.ray-group.slice-card { --vec: #22282e; }
+.ray-group.slice-cut { --vec: #1f6fb2; }
+:is(.slice-card, .slice-cut) .ray-group-title,
+:is(.slice-card, .slice-cut) .lab-slider-name,
+:is(.slice-card, .slice-cut) .lab-slider-value { color: var(--vec); }
+:is(.slice-card, .slice-cut) .lab-slider input[type="range"] { accent-color: var(--vec); }
+.slice-out { width: 19em; }
+.slice-caption { font-size: 1.15em; line-height: 1.35; min-height: 4.1em; }
+/* P, D, M and the lines written out, or an edge's distances, t and its lerp:
+   room kept for the tallest of those, so the lists and buttons below stay
+   put from step to step. The multivector rows (P = x e20 + ...) are set a
+   little smaller so the motor's four terms fit the width. The lerp is said in
+   words, so it wraps like the caption. */
+.slice-working { font-family: var(--r-code-font, monospace); font-size: 0.95em; line-height: 1.45; min-height: 5.8em; white-space: nowrap; }
+.slice-working .slice-pga { font-size: 0.86em; }
+.slice-working .slice-prose { font-family: var(--r-main-font, sans-serif); white-space: normal; }
+.slice-caption code { font-size: 0.9em; }
+.slice-nowrap { white-space: nowrap; }
+/* "Shape on one side of the cut contains vertices: X, 2, 3, Y": a sentence,
+   so wrapping, with two lines kept for each list. Hidden, not removed,
+   before the sides step. */
+.slice-lists { font-size: 0.95em; font-weight: 400; white-space: normal; row-gap: 0.5em; }
+.slice-lists .cross-name { font-size: 1.15em; font-weight: 700; }
+.slice-lists .cross-vector { font-family: inherit; line-height: 1.3; min-height: 2.6em; }

@@ -16,7 +16,8 @@
  * or ray-lab.js (the ray-sphere and ray-cylinder quadratics' a, b, c and
  * discriminant, beside a 3D view, and the capped cylinder's end cap checks) or cross-lab.js (A x B and B x A,
  * drawn in 3D) or dot-lab.js (A . B and A's length along B, in 2D) or bullet-lab.js (bullet hell patterns and a heart to dodge
- * them, which time-steps rather than recomputing on a drag). Keeping
+ * them, which time-steps rather than recomputing on a drag) or slice-lab.js
+ * (cutting a card in two, as Cut the Deck's Cutter.Split does). Keeping
  * one entry point means one scan of the document and no chance of two
  * modules both claiming the same div.
  */
@@ -33,6 +34,7 @@ import { mountRayLab } from './ray-lab.js';
 import { mountCrossLab } from './cross-lab.js';
 import { mountDotLab } from './dot-lab.js';
 import { mountBulletLab } from './bullet-lab.js';
+import { mountSliceLab } from './slice-lab.js';
 
 const VECTOR_MODES = new Set(['polar', 'add', 'dot', 'reflect']);
 const MOTION_MODES = new Set(['motion', 'accel']);
@@ -91,7 +93,7 @@ function optionsFrom(el) {
   // that is already the parallel lab's distance, parsed as one number above.
   // data-end-a / data-end-b, not data-a / data-b, which are matmul's matrices -
   // and for the same reason the cross product's vectors are data-vec-a / -b.
-  for (const key of ['start', 'dir', 'centre', 'endA', 'endB', 'vecA', 'vecB']) {
+  for (const key of ['start', 'dir', 'centre', 'endA', 'endB', 'vecA', 'vecB', 'card', 'cut']) {
     if (el.dataset[key]) opts[key] = el.dataset[key].split(',').map(Number);
   }
   if (el.dataset.radius !== undefined) opts.radius = parseFloat(el.dataset.radius);
@@ -139,6 +141,7 @@ function boot() {
       else if (kind === 'ray-capped') mountRayLab(el, { ...opts, shape: 'capped' });
       else if (kind === 'cross') mountCrossLab(el, opts);
       else if (kind === 'dot-product') mountDotLab(el, opts);
+      else if (kind === 'slice') mountSliceLab(el, opts);
       else if (kind === 'bullets') {
         const pattern = el.dataset.pattern;
         mountBulletLab(el, { ...opts, pattern, ...(pattern === 'composite' && { parts: bulletParts() }) });

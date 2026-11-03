@@ -78,6 +78,8 @@
   <div class="lab-mount" id="t-cross" data-lab="cross" data-vec-a="3,1,0" data-vec-b="1,2,0" data-readout="true"></div>
   <!-- Math 1, vector operations: the dot product. -->
   <div class="lab-mount" id="t-dotp" data-lab="dot-product" data-vec-a="2,3" data-vec-b="4,1"></div>
+  <!-- Unity, slicing: Cutter.Split on a card, a step at a time. -->
+  <div class="lab-mount" id="t-slice" data-lab="slice" data-card="1.2,0,20" data-cut="-3,-1.5,25"></div>
   <!-- Math 1, bullet hell: a radial ring, and shots aimed at the heart. -->
   <div class="lab-mount" id="t-radial" data-lab="bullets" data-pattern="radial" data-readout="true"></div>
   <div class="lab-mount" id="t-aimed" data-lab="bullets" data-pattern="aimed" data-readout="true"></div>
@@ -245,7 +247,7 @@ async function waitUntil(fn, timeout = 4000) {
 }
 
 const ready = () => waitUntil(() =>
-  document.querySelectorAll('.rig canvas').length === 24
+  document.querySelectorAll('.rig canvas').length === 25
   && document.querySelectorAll('#t-reflect .lab-value-row').length > 0
   && document.querySelectorAll('#t-accel .lab-value-row').length > 0
   && document.querySelector('#t-planes canvas')?.dataset.p2
@@ -261,6 +263,7 @@ const ready = () => waitUntil(() =>
   && document.getElementById('t-capped').dataset.verdict
   && document.getElementById('t-cross').dataset.result
   && document.getElementById('t-dotp').dataset.dot
+  && document.getElementById('t-slice').dataset.listA
   && document.querySelectorAll('#t-aimed .lab-value-row').length > 0);
 
 /* ------------------------------------------------------------------ tests --- */
@@ -280,7 +283,7 @@ async function run() {
      context, so this stays as a guard against anything reintroducing one.
      See PLAN.md 2.1. */
   for (const id of ['polar', 'add', 'dot', 'reflect', '2d',
-                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel', 'ray', 'cyl', 'capped', 'cross', 'dotp', 'radial', 'aimed']) {
+                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel', 'ray', 'cyl', 'capped', 'cross', 'dotp', 'slice', 'radial', 'aimed']) {
     const canvas = document.getElementById(`t-${id}`).querySelector('canvas');
     const kind = canvas.getContext('2d') ? 'canvas2d' : 'webgl';
     record(kind === 'canvas2d', `${id.padEnd(8)} drawn by Canvas 2D`, kind, 'canvas2d');
@@ -978,6 +981,44 @@ async function run() {
     set(['Sy'], [3]);
     record(verdict() === 'miss' && v('‖') === '1.5', 'capped  D along the axis, outside r: a miss',
       `${verdict()} ${v('‖')}`, 'miss 1.5');
+  }
+
+  /* -- slice: Cutter.Split, one edge per Next ----------------------------- */
+  {
+    const lab = document.getElementById('t-slice');
+    const d = lab.dataset;
+    const press = (name) => [...lab.querySelectorAll('.lab-button')].find((b) => b.textContent === name).click();
+    const lists = () => `${d.listA} | ${d.listB}`;
+    const sl = (name) => [...lab.querySelectorAll('.lab-slider')]
+      .find((r) => r.querySelector('.lab-slider-name').textContent.trim() === name).querySelector('input').value;
+
+    // The card at (1.2, 0) turned 20 degrees, the cut through (-3, -1.5) at
+    // 25 degrees: corners 0 and 1 are below it (b), 2 and 3 above (a, the
+    // normal's side), and edges 1-2 and 3-0 cross it at X and Y.
+    record(d.step === '0' && lists() === '– | –', 'slice  starts on the world-space cut', `${d.step} ${lists()}`, '0 – | –');
+    // Card.Cut's motor: the inverse of Translate(1.2, 0) * Rotate(20), and the
+    // cut sandwiched by it, the same numbers Math2d.cs gives
+    record(d.motor === '0.98 0.59 -0.10 0.17', 'slice  M = inverse(T R), Math2d formulas', d.motor, '0.98 0.59 -0.10 0.17');
+    record(d.model === '-0.09 1.00 -0.42', 'slice  L_model = M L_world reverse(M)', d.model, '-0.09 1.00 -0.42');
+    for (let i = 0; i < 4; i++) press('Next');
+    record(lists() === 'X | 0, 1, X', 'slice  edge 1 -> 2 crosses: X to both', lists(), 'X | 0, 1, X');
+    for (let i = 0; i < 3; i++) press('Next');
+    record(d.step === '7' && lists() === 'X, 2, 3, Y | 0, 1, X, Y', 'slice  all four edges: two halves, back in world space', `${d.step} ${lists()}`, '7 X, 2, 3, Y | 0, 1, X, Y');
+    press('Next');
+    press('Next');
+    record(d.step === '8' && lists() === 'X, 2, 3, Y | 0, 1, X, Y', 'slice  Next stops at the halves pushed apart', `${d.step} ${lists()}`, '8 X, 2, 3, Y | 0, 1, X, Y');
+
+    // dragging P up past the card: the cut misses, everything is in b
+    press('Reset');
+    drag('t-slice', [-3, -1.5], [-3, 1.8], { view: 2.7 });
+    record(sl('Px') === '-3' && sl('Py') === '1.8', 'slice  drag P moves its sliders', `${sl('Px')} ${sl('Py')}`, '-3 1.8');
+    for (let i = 0; i < 7; i++) press('Next');
+    record(lists() === '– | 0, 1, 2, 3', 'slice  a cut that misses: all to b', lists(), '– | 0, 1, 2, 3');
+    // dragging D's tip straight above P makes D 90 degrees
+    press('Reset');
+    const tip = [-3 + 1.2 * Math.cos(Math.PI * 25 / 180), 1.8 + 1.2 * Math.sin(Math.PI * 25 / 180)];
+    drag('t-slice', tip, [-3, 2.6], { view: 2.7 });
+    record(sl('D') === '90', 'slice  drag D tip turns D', sl('D'), '90');
   }
 
   /* -- dot product: A . B, the angle, and a length along the other ------- */
