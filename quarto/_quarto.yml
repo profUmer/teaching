@@ -35,4 +35,11 @@ format:
     history: true
     chalkboard: true        # press 'b' to draw on a slide during class
     preview-links: auto
-    html-math-method: mathjax
+    # SVG output, pinned. The default (CHTML) keeps all its layout in a
+    # stylesheet that MathJax 4 builds through the CSSOM, so anything that
+    # re-inserts <style> tags (some browser extensions do) strips it and the
+    # math falls apart - students saw matrices strung out on one line with
+    # brackets broken into | | |. SVG carries its layout inside each formula.
+    html-math-method:
+      method: mathjax
+      url: "https://cdn.jsdelivr.net/npm/mathjax@4.1.3/tex-svg.js"
