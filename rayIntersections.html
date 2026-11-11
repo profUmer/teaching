@@ -193,22 +193,49 @@ Umer Noor, PhD
 
 </div>
 </section>
+<section id="ray-end-cap-intersection" class="slide level2">
+<h2>Ray-End cap intersection</h2>
+<p>Ok, say you’ve got an intersection with the really long cylinder. What about the end caps?</p>
+<p>Consider the end caps as planes. If the ray hits the plane at position <span class="math inline">\(\vec{P}\)</span>, the plane equation is:</p>
+<p><span class="math display">\[\hat{N} \cdot \vec{P} = D\]</span></p>
+<p>Where <span class="math inline">\(\hat{N}\)</span> is the normal of the plane and <span class="math inline">\(D\)</span> is the signed distance to the origin.</p>
+<p>If we are considering end cap position <span class="math inline">\(\vec{A}\)</span>, we have <span class="math display">\[\hat{N} = -\hat{AB}\]</span> and <span class="math display">\[D = -\vec{A} \cdot \hat{AB}\]</span></p>
+</section>
+<section id="ray-end-cap-a-intersection" class="slide level2">
+<h2>Ray-End cap A intersection</h2>
+<p>Putting that all together, the plane equation through end cap position <span class="math inline">\(\vec{A}\)</span> is:</p>
+<p><span class="math display">\[-\hat{AB} \cdot \vec{P} = -\vec{A} \cdot \hat{AB}\]</span></p>
+<p>Now shove in the equation for a ray starting at position <span class="math inline">\(\vec{S}\)</span> along direction <span class="math inline">\(\vec{D}\)</span>:</p>
+<p><span class="math display">\[-\hat{AB} \cdot (\vec{S} + t\vec{D}) = -\vec{A} \cdot \hat{AB}\]</span></p>
+<p>Isolate the parameter t by doing some moves:</p>
+<p><span class="math display">\[-\hat{AB} \cdot \vec{S} - t\hat{AB} \cdot\vec{D} = -\vec{A} \cdot \hat{AB}\]</span> <span class="math display">\[ - t\hat{AB} \cdot\vec{D} = \hat{AB} \cdot \vec{S}-\vec{A} \cdot \hat{AB}\]</span> <span class="math display">\[ - t\hat{AB} \cdot\vec{D} = (\vec{S}-\vec{A}) \cdot \hat{AB}\]</span></p>
+</section>
+<section id="ray-end-cap-a-intersection-1" class="slide level2">
+<h2>Ray-End cap A intersection</h2>
+<p>If you use <span class="math inline">\(\vec{AS} = (\vec{S}-\vec{A})\)</span>, we end up with <span class="math display">\[ t = -\frac{\vec{AS}\cdot\vec{AB}}{\vec{D}\cdot{\vec{AB}}}\]</span></p>
+<p>Notice there is only one answer for t, as we are intersecting the ray with a flat plane rather than a curved surface.</p>
+<p>Watch out, <span class="math inline">\(t\)</span> blows up if the direction of the ray is perpendicular to cylinder axis as <span class="math inline">\(\vec{D}\cdot{\vec{AB}} = 0\)</span>.</p>
+<p>See if you can figure out a similar <span class="math inline">\(t\)</span> equation for end cap at position <span class="math inline">\(\vec{B}\)</span></p>
+</section>
+<section id="ray-plane-intersection-demo" class="slide level2">
+<h2>Ray-Plane intersection demo</h2>
+<div class="lab-mount" data-lab="ray-planes" data-start="0,1.5,0" data-dir="1,0.1,0.2" data-end-a="4,2,0" data-end-b="7,2,0" data-yaw="35" data-view="4">
+
+</div>
+</section>
 <section id="ray-cylinder-intersection" class="slide level2">
 <h2>Ray-Cylinder intersection</h2>
-<p>Ok, say you’ve got an intersection with the really long cylinder. What about the end caps?</p>
-<p>First check if you are outside the plane of end cap A:</p>
+<p>We are almost ready to intersect a ray with an actual cylinder. First check if we are outside end cap A?</p>
 <p><span class="math display">\[ \vec{AP} \cdot \vec{AB} &lt; 0\]</span></p>
 <p>If that passes, then check if the ray is actually heading towards end cap A:</p>
 <p><span class="math display">\[ \vec{D} \cdot \vec{AB} &gt; 0 \]</span></p>
-<p>If that passes, check where the ray hits the plane of end cap A:</p>
-<p><span class="math display">\[ t = -\frac{\vec{AS}\cdot\vec{AB}}{\vec{D}\cdot{\vec{AB}}}\]</span></p>
-</section>
-<section id="ray-cylinder-intersection-1" class="slide level2">
-<h2>Ray-Cylinder intersection</h2>
-<p>Use the <span class="math inline">\(t\)</span> parameter to find a point <span class="math inline">\(\vec{Q}\)</span> on the plane:</p>
+<p>If that passes, check where the ray hits the plane of end cap A using the <span class="math inline">\(t\)</span> parameter:</p>
 <p><span class="math display">\[ \vec{Q} = \vec{S} + t\vec{D}\]</span></p>
 <p>Finally check whether that’s within the radius of the cylinder:</p>
 <p><span class="math display">\[ \|\vec{AQ} \| \leq r\]</span></p>
+</section>
+<section id="ray-cylinder-intersection-1" class="slide level2">
+<h2>Ray-Cylinder intersection</h2>
 <p>If all those checks worked, you hit end cap A!</p>
 <p>If not, rinse and repeat for end cap B (careful, the dot checks will look a bit different).</p>
 <p>And if you aren’t outside the plane of end caps A or B, then it turns out the ray-infinite cylinder intersection was correct after all!</p>
