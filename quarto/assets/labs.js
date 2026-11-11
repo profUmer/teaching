@@ -139,6 +139,7 @@ function boot() {
       else if (kind === 'ray-sphere') mountRayLab(el, { ...opts, shape: 'sphere' });
       else if (kind === 'ray-cylinder') mountRayLab(el, { ...opts, shape: 'cylinder' });
       else if (kind === 'ray-capped') mountRayLab(el, { ...opts, shape: 'capped' });
+      else if (kind === 'ray-planes') mountRayLab(el, { ...opts, shape: 'planes' });
       else if (kind === 'cross') mountCrossLab(el, opts);
       else if (kind === 'dot-product') mountDotLab(el, opts);
       else if (kind === 'slice') mountSliceLab(el, opts);

@@ -1,10 +1,18 @@
 /*
  * ray-lab.js - the ray intersection quadratics, for Game Physics 3's Ray
- * Intersections deck. Three shapes:
+ * Intersections deck. Three shapes, and the end cap planes on their own:
  *
  *   <div class="lab-mount" data-lab="ray-sphere"></div>
  *   <div class="lab-mount" data-lab="ray-cylinder"></div>
  *   <div class="lab-mount" data-lab="ray-capped"></div>
+ *   <div class="lab-mount" data-lab="ray-planes"></div>
+ *
+ * ray-planes is the step before ray-capped: the ray against the two planes
+ * the end caps lie in, square to AB through A and through B, with no radius.
+ * The readout works t out for A as the slide does - D . AB, AS . AB, then
+ * t_A = -AS . AB / D . AB and Q_A - and gives only t_B and Q_B for B, whose
+ * equation the slide leaves as an exercise (see planeRows). Green ahead of
+ * S, red behind it; D . AB = 0 puts a note on the view instead.
  *
  * ray-capped is the cylinder with its end caps: the slides' checks, in order,
  * after the infinite cylinder's quadratic. P is where the ray first meets the
@@ -94,6 +102,49 @@ const mid = (p, q) => scale(add(p, q), 0.5);
 
 /* The cylinder and the capped cylinder share the axis and quadratic. */
 const tube = (kind) => kind === 'cylinder' || kind === 'capped';
+/* ...and with the end cap planes, the end points A and B. */
+const hasEnds = (kind) => tube(kind) || kind === 'planes';
+
+/*
+ * The end cap planes, as the slides do it: the plane through A square to AB,
+ * and the one through B, for the ray S + tD. Each is met at
+ *
+ *   t_A = -AS . AB / D . AB      t_B = -BS . AB / D . AB
+ *
+ * (the slide's t, and its B twin - the same t as with BA on top and below).
+ * Returns D . AB and AS . AB, and t and Q for each plane while D . AB is not
+ * 0. null when A and B coincide: there is no AB to be square to.
+ */
+function planeHits(st, S, D) {
+  const AB = sub(st.B, st.A);
+  if (len(AB) < 1e-9) return null;
+  const h = { dab: dot(D, AB), asab: dot(sub(S, st.A), AB) };
+  if (Math.abs(h.dab) < 1e-9) return h;   // alongside the planes: t blows up
+  h.tA = -h.asab / h.dab;
+  h.tB = -dot(sub(S, st.B), AB) / h.dab;
+  h.QA = along(S, D, h.tA);
+  h.QB = along(S, D, h.tB);
+  return h;
+}
+
+/* The planes' readout: D . AB and AS . AB, then t and Q for A, worked out as
+   the slide does, and only t and Q for B - the slide leaves B's equation as an
+   exercise, so the numbers are there to check an answer against. t and Q are
+   green in front of S (t >= 0), red behind it, a dash when D . AB = 0. */
+function planeRows(h) {
+  const none = !h || h.tA === undefined;
+  const side = (t) => `ray-check ${none ? 'ray-skip' : t >= 0 ? 'ray-pass' : 'ray-fail'}`;
+  const num = (v) => (v === undefined ? '–' : fmt(v));
+  const pt = (p) => (p ? `(${p.map((x) => fmt(x)).join(', ')})` : '–');
+  return [
+    [`${V('D')} · ${V('AB')}`, num(h?.dab), `ray-check${h && none ? ' ray-fail' : ''}`],
+    [`${V('AS')} · ${V('AB')}`, num(h?.asab), 'ray-check'],
+    [`<i>t</i><sub>A</sub> = −${V('AS')} · ${V('AB')} / ${V('D')} · ${V('AB')}`, num(h?.tA), side(h?.tA)],
+    [`${V('Q')}<sub>A</sub> =`, pt(h?.QA), `${side(h?.tA)} ray-point`],
+    [`<i>t</i><sub>B</sub>`, num(h?.tB), `${side(h?.tB)} ray-split`],
+    [`${V('Q')}<sub>B</sub> =`, pt(h?.QB), `${side(h?.tB)} ray-point`],
+  ];
+}
 
 /* The cylinder's axis direction, AB normalised - null when A and B coincide,
    which leaves the axis, and so every coefficient, undefined. */
@@ -202,6 +253,15 @@ const SHAPES = {
       { title: `End cap centre ${V('B')}, radius <i>r</i>`, vec: 'B', radius: true },
     ],
     coefficients: (st) => tubeCoefficients(st, st.S, st.D),
+    centre: (st) => mid(st.A, st.B),
+  },
+
+  // just the two planes the end caps lie in: no radius, no quadratic
+  planes: {
+    groups: [
+      { title: `End cap centre ${V('A')}`, vec: 'A' },
+      { title: `End cap centre ${V('B')}`, vec: 'B' },
+    ],
     centre: (st) => mid(st.A, st.B),
   },
 };
@@ -314,6 +374,18 @@ export function mountRayLab(el, opts = {}) {
   let built = false;
   function update() {
     if (!built) return;
+    if (kind === 'planes') {
+      st.hit = planeHits(st, st.S, st.D);
+      st.note = !st.hit ? 'A and B must be different points'
+        : st.hit.tA === undefined ? 'D · AB = 0: the ray runs alongside the planes, t blows up' : null;
+      values.update(planeRows(st.hit));
+      // for the self-test: which plane the ray meets first ahead of S
+      const h = st.hit, ahead = (t) => t !== undefined && t >= 0;
+      el.dataset.first = !h || !(ahead(h.tA) || ahead(h.tB)) ? 'none'
+        : !ahead(h.tB) || (ahead(h.tA) && h.tA <= h.tB) ? 'A' : 'B';
+      scene.paint();
+      return;
+    }
     const [a, b, c] = shape.coefficients(st);
     const d = b * b - 4 * a * c;
 
@@ -399,7 +471,7 @@ function makeScene(stageEl, st, opts, target, onDrag) {
      the end of the radius line - so the first wins where two coincide. */
   function grips() {
     const g = [['S', st.S], ['D', add(st.S, st.D)]];
-    if (tube(st.kind)) g.push(['A', st.A], ['B', st.B]);
+    if (hasEnds(st.kind)) g.push(['A', st.A], ['B', st.B]);
     else g.push(['C', st.C]);
     const end = radiusEnd();
     if (end) g.push(['r', end]);
@@ -409,6 +481,7 @@ function makeScene(stageEl, st, opts, target, onDrag) {
   /* Where the radius line ends: out from C, or from A square to the axis,
      toward the viewer's right. null with no axis (A = B). */
   function radiusEnd() {
+    if (st.kind === 'planes') return null;   // planes have no radius
     const right = view.axes.right;
     if (!tube(st.kind)) return along(st.C, right, st.r);
     const n = axisOf(st);
@@ -441,9 +514,32 @@ function makeScene(stageEl, st, opts, target, onDrag) {
   /* The shape's geometry for this frame, worked out once per paint. */
   let geo = null;
   function prepare() {
-    if (!tube(st.kind)) { geo = null; return; }
+    if (!hasEnds(st.kind)) { geo = null; return; }
     const n = axisOf(st);
     geo = { n, span: n && clipLine(st.A, n) };
+    if (st.kind === 'planes' && n) {
+      // the planes are infinite: drawn as squares about A and B, matched in
+      // size, and grown so the points where the ray meets them sit on them
+      const h = st.hit || {};
+      const reach = (X, Q) => (Q ? len(sub(Q, X)) + 0.7 : 0);
+      geo.half = Math.min(BOX, Math.max(2.5, reach(st.A, h.QA), reach(st.B, h.QB)));
+      geo.basis = perpBasis(n);
+    }
+  }
+
+  /* Is P behind one of the plane squares, seen from the eye? */
+  function behindPlane(P) {
+    const { n, half, basis: [p1, p2] } = geo;
+    const d = sub(P, axes.eye);
+    const dn = dot(d, n);
+    if (Math.abs(dn) < 1e-12) return false;
+    for (const X of [st.A, st.B]) {
+      const s = dot(sub(X, axes.eye), n) / dn;
+      if (!(s > 0 && s < 1 - 1e-6)) continue;
+      const off = sub(along(axes.eye, d, s), X);
+      if (Math.abs(dot(off, p1)) <= half && Math.abs(dot(off, p2)) <= half) return true;
+    }
+    return false;
   }
 
   /* --- occlusion ----------------------------------------------------------- */
@@ -453,6 +549,7 @@ function makeScene(stageEl, st, opts, target, onDrag) {
      either shape: the target and any point the sliders reach are at most
      34.7 apart, and 45 - 34.7 is more than the largest radius. */
   function hidden(P) {
+    if (st.kind === 'planes') return geo.n ? behindPlane(P) : false;
     if (st.r <= 0) return false;
     const d = sub(P, axes.eye);
     if (st.kind === 'capped') {
@@ -774,18 +871,74 @@ function makeScene(stageEl, st, opts, target, onDrag) {
     }
   }
 
+  /* The end cap planes: the axis through A and B, faint; each plane as a
+     translucent amber square about its centre, the far one first; and each
+     plane's outward normal, -AB at A and +AB at B, as the slide has it. */
+  function drawPlanes(W) {
+    const { A, B } = st;
+    const { n, span } = geo;
+    const centres = () => {
+      ctx.fillStyle = css(C.handle);
+      disc(ctx, xy(A), W.dot);
+      disc(ctx, xy(B), W.dot);
+      label(ctx, xy(A), 'A', W.text, 'right', W.text * 0.6, true);
+      label(ctx, xy(B), 'B', W.text, 'right', W.text * 0.6, true);
+    };
+    if (!n) { centres(); return; }   // A = B: paint() says so in the corner
+
+    ctx.strokeStyle = css(BALL);
+    if (span) {
+      ctx.globalAlpha = 0.5;
+      dashed(ctx, [xy(along(A, n, span[0])), xy(along(A, n, span[1]))], W.thin, W.dash);
+      ctx.globalAlpha = 1;
+    }
+
+    const { half, basis: [p1, p2] } = geo;
+    const far = len(sub(A, axes.eye)) > len(sub(B, axes.eye));
+    for (const X of far ? [A, B] : [B, A]) {
+      const corner = (i, j) => xy(add(X, add(scale(p1, i * half), scale(p2, j * half))));
+      const square = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)];
+      ctx.fillStyle = 'rgba(212, 160, 23, 0.2)';
+      fillShape(ctx, square);
+      ctx.strokeStyle = css(C.aux);
+      stroke(ctx, square, W.thin * 1.2, true);
+    }
+
+    ctx.strokeStyle = ctx.fillStyle = css(BALL);
+    arrow(ctx, xy(A), xy(along(A, n, -1.5)), W.arrow * 0.8);
+    arrow(ctx, xy(B), xy(along(B, n, 1.5)), W.arrow * 0.8);
+    centres();
+  }
+
+  /* Where the ray meets each plane: Q_A and Q_B, green ahead of S (t >= 0),
+     red behind it, on the ray's dashed half. Drawn last, over all. */
+  function drawPlaneHits(W) {
+    const h = st.hit;
+    if (!h || h.tA === undefined) return;
+    for (const [k, Q, t] of [['A', h.QA, h.tA], ['B', h.QB, h.tB]]) {
+      ctx.fillStyle = css(t >= 0 ? C.result : C.accentA);
+      disc(ctx, xy(Q), W.dot * 1.2);
+      const q = xy(Q);
+      // the subscript clear of the Q, so neither halo cuts into the other
+      // below-right: B's normal arrow runs off above it
+      label(ctx, q, 'Q', W.text, 'left', -W.text * 0.8, true);
+      label(ctx, [q[0] + W.text * 0.95, q[1]], k, W.text * 0.7, 'left', -W.text * 1.15, true);
+    }
+  }
+
   function paint() {
     const W = view.begin();
     axes = view.axes;
     prepare();
     const { S, D, r } = st;
     const cylinder = tube(st.kind);
+    const planes = st.kind === 'planes';
 
     view.floor(W, GRID);
 
     // the sphere's shadow on the floor, and dashed stalks down to it from the
     // shape's points and S, so their heights can be read
-    if (!cylinder && r > 0) {
+    if (st.kind === 'sphere' && r > 0) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.07)';
       const shadow = [];
       for (let i = 0; i < 48; i++) {
@@ -795,7 +948,7 @@ function makeScene(stageEl, st, opts, target, onDrag) {
       fillShape(ctx, shadow);
     }
     ctx.strokeStyle = '#9aa3ab';
-    for (const P of cylinder ? [st.A, st.B, S] : [st.C, S]) {
+    for (const P of hasEnds(st.kind) ? [st.A, st.B, S] : [st.C, S]) {
       if (Math.abs(P[1]) > 1e-6) dashed(ctx, [xy(P), xy([P[0], 0, P[2]])], W.thin, W.dash);
     }
 
@@ -819,16 +972,18 @@ function makeScene(stageEl, st, opts, target, onDrag) {
       disc(ctx, xy(along(S, D, 1)), W.dot);   // D's tip, to drag
     }
 
-    // under the shape: whatever it hides
-    ctx.globalAlpha = 0.35;
+    // under the shape: whatever it hides. The planes are see-through: what
+    // is behind one is drawn as it is, and tinted by the plane over it.
+    ctx.globalAlpha = planes ? 1 : 0.35;
     ctx.strokeStyle = '#9aa3ab';
     drawRuns(back, true, BACK);
     ctx.strokeStyle = css(RAY);
-    drawRuns(fwd, true, FWD_HIDDEN);
+    drawRuns(fwd, true, planes ? FWD_SHOWN : FWD_HIDDEN);
     ctx.globalAlpha = 1;
     if (sHidden) startAndDirection();
 
-    if (st.kind === 'capped') drawCapped(W);
+    if (planes) drawPlanes(W);
+    else if (st.kind === 'capped') drawCapped(W);
     else if (cylinder) drawCylinder(W);
     else drawSphere(W);
 
@@ -848,6 +1003,7 @@ function makeScene(stageEl, st, opts, target, onDrag) {
     }
 
     if (st.kind === 'capped') drawChecks(W);
+    if (planes) drawPlaneHits(W);
 
     view.corner(W, 'drag a dot to move it · drag elsewhere to orbit · scroll to zoom');
     // why the discriminant is greyed out, when it is (see update())

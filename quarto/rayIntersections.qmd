@@ -51,11 +51,52 @@ Then use the quadratic formula like before!
 <div class="lab-mount" data-lab="ray-cylinder"
      data-start="0,0,0" data-dir="1,0,0" data-end-a="5,0,0" data-end-b="5,3,0" data-radius="1"></div>
 
-## Ray-Cylinder intersection
-
+## Ray-End cap intersection
 Ok, say you've got an intersection with the really long cylinder. What about the end caps?
 
-First check if you are outside the plane of end cap A:
+Consider the end caps as planes. If the ray hits the plane at position $\vec{P}$, the plane equation is:
+
+$$\hat{N} \cdot \vec{P} = D$$
+
+Where $\hat{N}$ is the normal of the plane and $D$ is the signed distance to the origin.
+
+If we are considering end cap position $\vec{A}$, we have $$\hat{N} = -\hat{AB}$$ and $$D = -\vec{A} \cdot \hat{AB}$$
+
+## Ray-End cap A intersection
+Putting that all together, the plane equation through end cap position $\vec{A}$ is:
+
+$$-\hat{AB} \cdot \vec{P} = -\vec{A} \cdot \hat{AB}$$
+
+Now shove in the equation for a ray starting at position $\vec{S}$ along direction $\vec{D}$:
+
+$$-\hat{AB} \cdot (\vec{S} + t\vec{D}) = -\vec{A} \cdot \hat{AB}$$
+
+Isolate the parameter t by doing some moves:
+
+$$-\hat{AB} \cdot \vec{S} - t\hat{AB} \cdot\vec{D} = -\vec{A} \cdot \hat{AB}$$
+$$ - t\hat{AB} \cdot\vec{D} = \hat{AB} \cdot \vec{S}-\vec{A} \cdot \hat{AB}$$
+$$ - t\hat{AB} \cdot\vec{D} = (\vec{S}-\vec{A}) \cdot \hat{AB}$$
+
+## Ray-End cap A intersection
+If you use $\vec{AS} = (\vec{S}-\vec{A})$, we end up with 
+$$ t = -\frac{\vec{AS}\cdot\vec{AB}}{\vec{D}\cdot{\vec{AB}}}$$
+
+Notice there is only one answer for t, as we are intersecting the ray with a flat plane rather than a curved surface.
+
+Watch out, $t$ blows up if the direction of the ray is perpendicular to cylinder axis as $\vec{D}\cdot{\vec{AB}} = 0$. 
+
+See if you can figure out a similar $t$ equation for end cap at position $\vec{B}$
+
+## Ray-Plane intersection demo
+
+<div class="lab-mount" data-lab="ray-planes"
+     data-start="0,1.5,0" data-dir="1,0.1,0.2" data-end-a="4,2,0" data-end-b="7,2,0"
+     data-yaw="35" data-view="4"></div>
+
+
+## Ray-Cylinder intersection
+We are almost ready to intersect a ray with an actual cylinder.
+First check if we are outside end cap A?
 
 $$ \vec{AP} \cdot \vec{AB} < 0$$
 
@@ -63,13 +104,7 @@ If that passes, then check if the ray is actually heading towards end cap A:
 
 $$ \vec{D} \cdot \vec{AB} > 0 $$
 
-If that passes, check where the ray hits the plane of end cap A:
-
-$$ t = -\frac{\vec{AS}\cdot\vec{AB}}{\vec{D}\cdot{\vec{AB}}}$$
-
-## Ray-Cylinder intersection
-
-Use the $t$ parameter to find a point $\vec{Q}$ on the plane:
+If that passes, check where the ray hits the plane of end cap A using the $t$ parameter:
 
 $$ \vec{Q} = \vec{S} + t\vec{D}$$
 
@@ -77,7 +112,9 @@ Finally check whether that's within the radius of the cylinder:
 
 $$ \|\vec{AQ} \| \leq r$$
 
-If all those checks worked, you hit end cap A! 
+## Ray-Cylinder intersection
+
+If all those checks worked, you hit end cap A!  
 
 If not, rinse and repeat for end cap B (careful, the dot checks will look a bit different). 
 

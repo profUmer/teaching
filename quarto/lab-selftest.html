@@ -74,6 +74,8 @@
        data-start="0,0,0" data-dir="1,0,0" data-end-a="5,0,0" data-end-b="5,3,0" data-radius="1"></div>
   <div class="lab-mount" id="t-capped" data-lab="ray-capped"
        data-start="0,3.7,0" data-dir="1,-0.5,0" data-end-a="4,1.5,0" data-end-b="7,1.5,0" data-radius="1"></div>
+  <div class="lab-mount" id="t-rplanes" data-lab="ray-planes"
+       data-start="0,1.5,0" data-dir="1,0.1,0.2" data-end-a="4,2,0" data-end-b="7,2,0"></div>
   <!-- Math 1, vector operations: the cross product. -->
   <div class="lab-mount" id="t-cross" data-lab="cross" data-vec-a="3,1,0" data-vec-b="1,2,0" data-readout="true"></div>
   <!-- Math 1, vector operations: the dot product. -->
@@ -247,7 +249,7 @@ async function waitUntil(fn, timeout = 4000) {
 }
 
 const ready = () => waitUntil(() =>
-  document.querySelectorAll('.rig canvas').length === 25
+  document.querySelectorAll('.rig canvas').length === 26
   && document.querySelectorAll('#t-reflect .lab-value-row').length > 0
   && document.querySelectorAll('#t-accel .lab-value-row').length > 0
   && document.querySelector('#t-planes canvas')?.dataset.p2
@@ -261,6 +263,7 @@ const ready = () => waitUntil(() =>
   && document.querySelectorAll('#t-ray .lab-value-row').length === 4
   && document.querySelectorAll('#t-cyl .lab-value-row').length === 4
   && document.getElementById('t-capped').dataset.verdict
+  && document.getElementById('t-rplanes').dataset.first
   && document.getElementById('t-cross').dataset.result
   && document.getElementById('t-dotp').dataset.dot
   && document.getElementById('t-slice').dataset.listA
@@ -283,7 +286,7 @@ async function run() {
      context, so this stays as a guard against anything reintroducing one.
      See PLAN.md 2.1. */
   for (const id of ['polar', 'add', 'dot', 'reflect', '2d',
-                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel', 'ray', 'cyl', 'capped', 'cross', 'dotp', 'slice', 'radial', 'aimed']) {
+                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel', 'ray', 'cyl', 'capped', 'rplanes', 'cross', 'dotp', 'slice', 'radial', 'aimed']) {
     const canvas = document.getElementById(`t-${id}`).querySelector('canvas');
     const kind = canvas.getContext('2d') ? 'canvas2d' : 'webgl';
     record(kind === 'canvas2d', `${id.padEnd(8)} drawn by Canvas 2D`, kind, 'canvas2d');
@@ -981,6 +984,40 @@ async function run() {
     set(['Sy'], [3]);
     record(verdict() === 'miss' && v('‖') === '1.5', 'capped  D along the axis, outside r: a miss',
       `${verdict()} ${v('‖')}`, 'miss 1.5');
+  }
+
+  /* -- end cap planes: the ray against the plane through A and through B --- */
+  /* A = [4,2,0], B = [7,2,0]: AB = [3,0,0]. S = [0,1.5,0], D = [1,0.1,0.2]:
+     D.AB = 3, AS.AB = -12, t_A = 12 / 3 = 4, Q_A = [4,1.9,0.8]; t_B = 21 / 3
+     = 7, Q_B = [7,2.2,1.4]. */
+  {
+    const lab = document.getElementById('t-rplanes');
+    const v = (key) => rowValue('t-rplanes', key);
+    const rowOf = (name) => [...lab.querySelectorAll('.lab-value-row')].find((r) => r.textContent.trim().startsWith(name));
+    const set = (names, vals) => names.forEach((n, i) => setSlider('t-rplanes', n, vals[i]));
+    const now = () => ['D', 'AS', 'tA', 'QA', 'tB', 'QB'].map(v).join(' ');
+
+    record(now() === '3 -12 4 (4, 1.9, 0.8) 7 (7, 2.2, 1.4)', 'rplanes  t for plane A and plane B',
+      now(), '3 -12 4 (4, 1.9, 0.8) 7 (7, 2.2, 1.4)');
+    record(lab.dataset.first === 'A' && rowOf('tA').classList.contains('ray-pass'), 'rplanes  meets A first, ahead of S',
+      `${lab.dataset.first} ${rowOf('tA').className}`, 'A ... ray-pass');
+    // S between the planes, at x = 5: plane A is behind it, t_A = -1, in red
+    set(['Sx'], [5]);
+    record(v('tA') === '-1' && v('tB') === '2' && rowOf('tA').classList.contains('ray-fail') && lab.dataset.first === 'B',
+      'rplanes  A behind S: t < 0, red', `${v('tA')} ${v('tB')} ${rowOf('tA').className} ${lab.dataset.first}`, '-1 2 ... ray-fail B');
+    // heading back, D = [-1,0.1,0.2]: A ahead now, t_A = 1, B behind
+    set(['Dx'], [-1]);
+    record(v('D') === '-3' && v('tA') === '1' && v('tB') === '-2' && lab.dataset.first === 'A',
+      'rplanes  heading back: A ahead', `${v('D')} ${v('tA')} ${v('tB')} ${lab.dataset.first}`, '-3 1 -2 A');
+    // alongside the planes, D = [0,1,0]: D.AB = 0, t blows up
+    set(['Dx', 'Dy', 'Dz'], [0, 1, 0]);
+    record(v('D') === '0' && v('tA') === '–' && v('QB') === '–' && lab.dataset.first === 'none',
+      'rplanes  D . AB = 0: no t', `${v('D')} ${v('tA')} ${v('QB')} ${lab.dataset.first}`, '0 – – none');
+    // a plane tilted with the axis: B = [7,5,0], AB = [3,3,0], D = [1,0,0],
+    // S = [0,1.5,0]: D.AB = 3, AS.AB = -12 - 1.5 = -13.5, t_A = 4.5
+    set(['Sx', 'Dx', 'Dy', 'By'], [0, 1, 0, 5]);
+    record(v('D') === '3' && v('AS') === '-13.5' && v('tA') === '4.5' && v('tB') === '10.5',
+      'rplanes  tilted axis', `${v('D')} ${v('AS')} ${v('tA')} ${v('tB')}`, '3 -13.5 4.5 10.5');
   }
 
   /* -- slice: Cutter.Split, one edge per Next ----------------------------- */

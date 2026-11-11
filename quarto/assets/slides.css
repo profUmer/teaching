@@ -410,6 +410,9 @@
    so a size smaller, as the cylinder's */
 .ray-point .lab-value-num { width: auto; white-space: nowrap; }
 .lab-ray-capped .lab-values { font-size: 1.15em; }
+/* ray-planes: B's rows under A's, set apart */
+.lab-ray-planes .lab-values { font-size: 1.15em; }
+.ray-split { border-top: 1px solid #e2e5e9; margin-top: 0.2rem; padding-top: 0.25em; }
 .ray-verdict { font-weight: 600; font-size: 1.3em; text-align: right; border-top: 1px solid #e2e5e9; padding-top: 0.3em; }
 .ray-verdict.is-hit { color: #1d7a4c; }
 .ray-verdict.is-miss { color: #c0392b; }
