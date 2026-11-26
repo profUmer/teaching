@@ -695,3 +695,20 @@ html.print-pdf .lab-stage { height: 400px; min-height: 0; }
 .slice-lists { font-size: 0.95em; font-weight: 400; white-space: normal; row-gap: 0.5em; }
 .slice-lists .cross-name { font-size: 1.15em; font-weight: 700; }
 .slice-lists .cross-vector { font-family: inherit; line-height: 1.3; min-height: 2.6em; }
+
+/* box-slice-lab.js: slice-lab.js's layout with four slider groups above (the
+   box, H, T and S), so a shorter stage. The working holds a face's four
+   distances and up to two meets, each written out on its own line; the eight
+   corner distances sit in a grid of two columns. */
+.reveal .lab-box-slice .lab-stage { height: 400px; }
+.lab-box-slice .ray-inputs { gap: 1.1rem; }
+.lab-box-slice .slice-out { width: 21em; }
+.lab-box-slice .slice-caption { min-height: 5.4em; font-size: 1.05em; }
+.lab-box-slice .box-working { min-height: 8.8em; font-size: 0.9em; }
+.box-ds { display: grid; grid-template-columns: repeat(2, auto); justify-content: start; column-gap: 1.2em; font-size: 0.9em; }
+.box-indent { padding-left: 1.2em; }
+/* both slice labs: the Show math toggle sits under the caption; the view
+   stays at the top whether the working shows or not */
+.lab-slice .ray-row { align-items: start; }
+.box-math-row { display: flex; }
+.box-math-row .lab-button { font-size: 0.85em; }

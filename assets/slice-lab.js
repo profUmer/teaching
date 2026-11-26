@@ -3,7 +3,7 @@
  *
  *   <div class="lab-mount" data-lab="slice"></div>
  *
- * Follows Cut the Deck's Card.Cut and Cutter.Split (UnityCourse/sandbox/
+ * Follows CardCut's Card.Cut and RectangleSlicer.Slice (UnityCourse/sandbox/
  * CutCard) a step at a time, with Prev / Next / Reset:
  *
  *   1. the cut in world space, L = P v D, through P along D, with P, D and L
@@ -15,12 +15,16 @@
  *   3. each vertex's side: its oriented distance to the cut, drawn as a grey
  *      drop, the vertex green if it is on the normal's side (a) and red if
  *      not (b), CutBench's Gizmo colours. The lists a and b appear here
- *   4. one Next per edge, as Split walks them: the vertex goes to its side's
+ *   4. one Next per edge, as Slice walks them: the vertex goes to its side's
  *      list, and an edge that crosses the cut adds the crossing point to both.
- *      Split's du and dv are shown as d0, d1, ...: the signed distance of
- *      Vertex 0, Vertex 1, ..., so they do not read as UV coordinates
+ *      The signed distances are shown as d0, d1, ...: the distance of
+ *      Vertex 0, Vertex 1, ... On a crossing edge, the crossing is the meet of
+ *      the cut with the edge's line, X = L_model ^ (V_i v V_j), with the edge's
+ *      line and X written out: no t and no lerp. A vertex on the cut (within
+ *      EPS) is the crossing itself, as Slice snaps it
  *   5. the two halves, rotated back into world space, still together, each
- *      clipped to its own part of the card's art and its vertices labelled
+ *      clipped to its own part of the card's art and its vertices labelled,
+ *      with each crossing's UV from the card's flat map (point / size + 1/2)
  *   6. pushed apart along the normal, with the normal drawn on the cut
  *      between them
  *
@@ -41,10 +45,11 @@ import { makeStage2D, stroke, dashed, arrow, disc, fillShape, label, css } from 
 
 const VIEW = 2.7;                       // half-height of the view
 const HW = 1.05, HH = 1.425;            // the card's half size: Card.Width 1.4 at 140 x 190 art, x 1.5
-const EPS = 1e-5;                       // Split's "within 0.00001 counts as n's side"
+const EPS = 1e-5;                       // Slice's "within 0.00001 counts as a's side"
 const PUSH = 0.5;                       // how far apart the halves end up
 const SPEED = 1.4;                      // animation, in transitions per second
-const UVS = [[0, 0], [1, 0], [1, 1], [0, 1]];   // PolyShape.SetCard's UVs, corner by corner
+// PolyShape.UV: the card's flat UV map, (0, 0) at its bottom-left corner
+const uvOf = (p) => [p[0] / (2 * HW) + 0.5, p[1] / (2 * HH) + 0.5];
 
 const GREY = '#9aa3ab';
 const SIDE_A = css(C.result);           // on the normal's side
@@ -64,6 +69,11 @@ const smooth = (t) => t * t * (3 - 2 * t);
 /* P v D, as Math2d's join of a point and a direction: [a, b, c] for ax + by + c = 0 */
 const join = (P, D) => [-D[1], D[0], P[0] * D[1] - P[1] * D[0]];
 const orientedDist = (p, [a, b, c]) => (a * p[0] + b * p[1] + c) / Math.hypot(a, b);
+/* Math2d's join of two points, p & q (the line through them), and its meet of
+   two lines, l1 ^ l2 = (-m.e02, m.e01, m.e12) with m = l1 * l2: a point
+   [x, y, w], x e20 + y e01 + w e12, which is (x / w, y / w). */
+const joinPoints = (p, q) => [-(q[1] - p[1]), q[0] - p[0], p[0] * q[1] - p[1] * q[0]];
+const meet = ([a1, b1, c1], [a2, b2, c2]) => [-(c1 * b2 - b1 * c2), c1 * a2 - a1 * c2, a1 * b2 - b1 * a2];
 
 /* Math2d's motors, [real, e01, e02, e12], and the sandwich M L reverse(M) on
    a line [e1, e2, e0], formula for formula, so the M and L_model on screen
@@ -87,19 +97,23 @@ function sandwich(m, [l1, l2, l0]) {
   return [f1 * rr - f2 * r12, f1 * r12 + f2 * rr, -f1 * r01 - f2 * r02 + f0 * rr - f * r12];
 }
 
-/* Cutter.Split, one event per edge so the lab can step through them. */
+/* RectangleSlicer.Slice, one event per edge so the lab can step through them.
+   A crossing is the meet of the cut with the edge's line, cut ^ (p & q), unless
+   one end is on the cut (within EPS): then it is that vertex (Slice's snap). */
 function split(pts, line) {
   const events = [];
-  const crossNames = ['X', 'Y', 'Z', 'W'];
-  let crossings = 0;
+  let crossings = 0;   // the points the cut adds: new vertex 1, 2, ... ("new 1" for short)
   for (let i = 0; i < pts.length; i++) {
     const j = (i + 1) % pts.length;
     const du = orientedDist(pts[i], line), dv = orientedDist(pts[j], line);
     const uIn = du >= -EPS, vIn = dv >= -EPS;
     let cross = null;
     if (uIn !== vIn) {
-      const t = du / (du - dv);                   // where along the edge the line crosses
-      cross = { p: lerp(pts[i], pts[j], t), uv: lerp(UVS[i], UVS[j], t), t, name: crossNames[crossings++] ?? '?' };
+      const edge = joinPoints(pts[i], pts[j]);
+      const m = meet(line, edge);
+      const snap = Math.abs(du) <= EPS ? i : Math.abs(dv) <= EPS ? j : null;
+      const p = snap !== null ? pts[snap] : [m[0] / m[2], m[1] / m[2]];
+      cross = { p, edge, meet: m, snap, isCross: true, name: `new\u00a0${++crossings}`, long: `new vertex\u00a0${crossings}` };   // non-breaking: never split over a line
     }
     events.push({ i, j, uIn, vIn, d: du, dv, cross });
   }
@@ -234,6 +248,20 @@ export function mountSliceLab(el, opts = {}) {
   button(buttons, 'Prev', () => go(step - 1));
   button(buttons, 'Next', () => go(step + 1));
   button(buttons, 'Reset', () => go(0));
+  // The working (the multivectors, distances and meets) is hidden until asked
+  // for, so the steps read as pictures and captions first. The toggle sits
+  // under the caption, where it stays put whether the working shows or not.
+  const mathRow = document.createElement('div');
+  mathRow.className = 'box-math-row';
+  caption.after(mathRow);
+  let showMath = false;
+  const mathButton = button(mathRow, 'Show math', () => setMath(!showMath));
+  function setMath(on) {
+    showMath = on;
+    working.style.display = on ? '' : 'none';
+    mathButton.textContent = on ? 'Hide math' : 'Show math';
+  }
+  setMath(false);
 
   /* --- the maths, from the sliders ---------------------------------------- */
   let geo = null;
@@ -258,13 +286,13 @@ export function mountSliceLab(el, opts = {}) {
   function describe() {
     const { events } = geo;
     if (step === 0) return `The cut ${I('L')}<sub>world</sub> = ${I('P')} ∨ ${I('D')}, in world space`;
-    if (step === 1) return `Into the card's model space: <span class="slice-nowrap">${I('L')}<sub>model</sub> = ${I('M')} ${I('L')}<sub>world</sub> ${I('M')}<sup>−1</sup></span>`;
-    if (step === SIDES) return `Each vertex's side of the cut: <code>OrientedDist(vertex, cut)</code>, `
-      + `${sideName(true)} on the normal's side, ${sideName(false)} the rest`;
+    if (step === 1) return `Into the card’s model space: <span class="slice-nowrap">${I('L')}<sub>model</sub> = ${I('M')} ${I('L')}<sub>world</sub> ${I('M')}<sup>−1</sup></span>`;
+    if (step === SIDES) return `Each vertex’s side of the cut: <code>OrientedDist(vertex, cut)</code>, `
+      + `${sideName(true)} on the normal’s side, ${sideName(false)} the rest`;
     if (step < WORLD) {
       const e = events[step - FIRST_EDGE];
       let text = `Edge ${e.i} → ${e.j}: Vertex ${e.i} goes to ${sideName(e.uIn)}`;
-      if (e.cross) text += `. The edge crosses the cut, so Vertex ${e.cross.name} goes to both`;
+      if (e.cross) text += `. The edge crosses the cut, so ${e.cross.long} goes to both`;
       else text += `. Both ends are on the same side, so no crossing`;
       return text;
     }
@@ -275,8 +303,9 @@ export function mountSliceLab(el, opts = {}) {
   }
 
   /* The working under the step. P, D, M and the lines as multivectors; on an edge,
-     Split's du and dv as d with the vertex's number, each in its vertex's
-     side colour, and on a crossing edge t, in the edge's yellow. */
+     its two signed distances as d with the vertex's number, each in its
+     vertex's side colour, and on a crossing edge the edge's line E and the
+     meet X = L ^ E, written out; back in world space, the crossings' UVs. */
   const SUB = '₀₁₂₃₄₅₆₇₈₉';
   const dName = (i) => `d${SUB[i]}`;
   function workingFor() {
@@ -296,13 +325,25 @@ export function mountSliceLab(el, opts = {}) {
     if (step === 1) return row(I('M'), mv(geo.M, ['', '01', '02', '12'])) + line('world', geo.world) + line('model', geo.model);
     // the sides are measured against the model-space line alone
     if (step < FIRST_EDGE) return line('model', geo.model);
-    if (step >= WORLD) return '';
+    if (step >= WORLD) {
+      // every UV from its point, PolyShape.UV: the crossings' are the new ones
+      const xs = geo.events.filter((e) => e.cross).map((e) => e.cross);
+      if (step > WORLD || xs.length < 2) return '';
+      const uv = (q) => uvOf(q.p).map((v) => v.toFixed(2)).join(', ');
+      return `<div class="slice-prose">Each point’s UV comes from the card’s flat map, point ÷ card size + ½:</div>`
+        + xs.map((q) => `<div>UV of ${tint(q.long, EDGE)} = (${uv(q)})</div>`).join('');
+    }
     const e = geo.events[step - FIRST_EDGE];
     const di = tint(dName(e.i), e.uIn ? SIDE_A : SIDE_B), dj = tint(dName(e.j), e.vIn ? SIDE_A : SIDE_B);
     let html = `<div>${di} = ${tint(n(e.d), e.uIn ? SIDE_A : SIDE_B)}&emsp;&emsp;${dj} = ${tint(n(e.dv), e.vIn ? SIDE_A : SIDE_B)}</div>`;
     if (!e.cross) return html;
-    html += `<div>t = ${di} / (${di} − ${dj}) = ${tint(n(e.cross.t), EDGE)}</div>`
-      + `<div class="slice-prose">${e.cross.name} = Lerp from Vertex ${e.i} to Vertex ${e.j} using t</div>`;
+    const x = e.cross;
+    if (x.snap !== null) {
+      return html + `<div class="slice-prose">Vertex ${x.snap} is on the cut, so ${x.long} is Vertex ${x.snap} itself</div>`;
+    }
+    html += row(`${I('E')} = ${I('V')}<sub>${e.i}</sub> ∨ ${I('V')}<sub>${e.j}</sub>`, mv(x.edge, ['1', '2', '0']))
+      + row(`${tint(x.long, EDGE)} = ${I('L')}<sub>model</sub> ∧ ${I('E')}`, mv(x.meet, ['20', '01', '12']))
+      + `<div class="slice-prose">The cut meets the edge’s line at ${tint(x.long, EDGE)}: divide by its e<sub>12</sub> for the point. No <i>t</i>, no lerp.</div>`;
     return html;
   }
 
@@ -319,8 +360,8 @@ export function mountSliceLab(el, opts = {}) {
     listBox.style.visibility = step >= SIDES ? '' : 'hidden';
     // for the self-test
     el.dataset.step = String(step);
-    el.dataset.listA = names(a);
-    el.dataset.listB = names(b);
+    el.dataset.listA = names(a).replace(/\u00a0/g, ' ');
+    el.dataset.listB = names(b).replace(/\u00a0/g, ' ');
     el.dataset.motor = geo.M.map((v) => v.toFixed(2)).join(' ');
     el.dataset.model = geo.model.map((v) => v.toFixed(2)).join(' ');
     placeHandles();
@@ -404,7 +445,7 @@ export function mountSliceLab(el, opts = {}) {
       const away = sub(V(q), V([0, 0])), l = Math.hypot(away[0], away[1]);
       return add(V(q), mul(away, (W.text * 0.9) / l));
     };
-    const crossLabel = (q) => add(add(V(q), mul(d, W.text * 0.9)), mul(nv, -W.text * 0.6));
+    const crossLabel = (q) => add(add(V(q), mul(d, W.text * 1.6)), mul(nv, -W.text * 0.6));
     const crossDot = (at, name, labelAt) => {
       ctx.fillStyle = EDGE;
       disc(ctx, at, W.dot * 1.15);
@@ -447,7 +488,7 @@ export function mountSliceLab(el, opts = {}) {
     ctx.strokeStyle = ctx.fillStyle = SIDE_A;
     if (step >= SIDES && step < WORLD) arrow(ctx, p, add(p, mul(nv, 0.8)), W.arrow * 0.8);
     if (halves && step === LAST) {
-      const xs = all.a.filter((q) => 't' in q).map((q) => V(q.p));
+      const xs = all.a.filter((q) => q.isCross).map((q) => V(q.p));
       const mid = mul(xs.reduce(add, [0, 0]), 1 / xs.length);
       ctx.globalAlpha = smooth(apart);
       arrow(ctx, mid, add(mid, mul(nv, 0.85 * PUSH)), W.arrow * 0.8);
@@ -495,7 +536,7 @@ export function mountSliceLab(el, opts = {}) {
     if (halves) {
       for (const h of halfList) {
         for (const q of h.pts) {
-          if ('t' in q) { crossDot(add(V(q.p), h.shift), q.name, add(crossLabel(q.p), h.shift)); continue; }
+          if (q.isCross) { crossDot(add(V(q.p), h.shift), q.name, add(crossLabel(q.p), h.shift)); continue; }
           ctx.fillStyle = h.colour;
           disc(ctx, add(V(q.p), h.shift), W.dot);
           label(ctx, add(cornerLabel(q.p), h.shift), q.name, W.text, 'center', 0, true);
@@ -534,7 +575,7 @@ export function mountSliceLab(el, opts = {}) {
   let away = !!el.closest('.reveal'), last = null, dirty = true;
   function frame(t) {
     const here = onSlide();
-    if (here && away) { step = 0; targets(); space = spaceTo; apart = apartTo; update(); }
+    if (here && away) { step = 0; targets(); space = spaceTo; apart = apartTo; setMath(false); update(); }
     away = !here;
     const now = (t ?? performance.now()) / 1000;
     const dt = last == null ? 0 : Math.max(0, Math.min(now - last, 0.05));

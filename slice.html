@@ -144,7 +144,7 @@
 
 <section id="title-slide" class="quarto-title-block center">
   <h1 class="title">Unity</h1>
-  <p class="subtitle">Slicing 2D and 3D Shapes</p>
+  <p class="subtitle">Slicing Rectangles and Boxes</p>
 
 <div class="quarto-title-authors">
 <div class="quarto-title-author">
@@ -159,23 +159,82 @@ Umer Noor, PhD
 
   <p class="date">Demos built using Claude Code</p>
 </section>
-<section id="d-slice" class="slide level2">
-<h2>2D Slice</h2>
-<p>Say your slice goes from point <span class="math inline">\(P\)</span> towards direction <span class="math inline">\(D\)</span>. If you are cool with Geometric Algebra, then the slice line can be written using the join product (<span class="math inline">\(\vee\)</span>):</p>
-<p><span class="math display">\[ L_{\text{world}} = P \vee D\]</span></p>
-<p>Put this line into the model space of the object being cut using the sandwich with the motor <span class="math inline">\(M\)</span> that takes you from world to model space:</p>
-<p><span class="math display">\[ L_{\text{model}} = ML_{\text{world}}M^{-1}\]</span></p>
-<p>Use Math2d’s orientedDist(vertex, lineModel) function to determine which vertices belong to shapes created after the slice.</p>
-<p>Add extra vertices to both shapes when the line cuts through an edge.</p>
+<section id="slicing-a-rectangle" class="slide level2">
+<h2>Slicing a Rectangle</h2>
+<p>Do you remember the join and meet from Geometric Algebra? Will be handy for slicing!</p>
+<ul>
+<li><p>Say your slice goes from point <span class="math inline">\(P\)</span> towards direction <span class="math inline">\(D\)</span> in world space.</p></li>
+<li><p>The slice line can be written using the join product (<span class="math inline">\(\vee\)</span>):</p></li>
+</ul>
+<p><span class="math display">\[ \text{Slice Line in World Space} = P \vee D\]</span></p>
+<ul>
+<li>Put this line into the model space of the object being cut using the sandwich with the motor <span class="math inline">\(M\)</span> that takes you from world to model space (works if no scaling):</li>
+</ul>
+<p><span class="math display">\[ \text{Slice Line in Model Space} = M(\text{Slice Line in World Space})M^{-1}\]</span></p>
 </section>
-<section id="d-slice-demo" class="slide level2">
-<h2>2D Slice Demo</h2>
+<section id="slicing-a-rectangle-1" class="slide level2">
+<h2>Slicing a Rectangle</h2>
+<p>A rectangle is made up of four vertices, which makes four edges.</p>
+<ul>
+<li>The slice will make two new shapes out of the rectangle</li>
+<li>Use Math2d’s <code>OrientedDist(vertex, lineModelSpace)</code> to decide which shape each vertex goes in</li>
+<li>Now we gotta figure out where the slice line cuts any edges</li>
+<li>Make the edge line from <span class="math inline">\(\text{Vertex}_1\)</span> to <span class="math inline">\(\text{Vertex}_2\)</span> using the join (<span class="math inline">\(\vee\)</span>)</li>
+</ul>
+<p><span class="math display">\[ \text{Edge from 1 to 2} = \text{Vertex}_1 \vee \text{Vertex}_2\]</span></p>
+<ul>
+<li>Then make a new vertex where the slice line meets the edge using the meet (<span class="math inline">\(\wedge\)</span>)</li>
+</ul>
+<p><span class="math display">\[ \text{New Vertex} = (\text{Slice Line in Model Space}) \wedge (\text{Edge from 1 to 2})\]</span></p>
+<ul>
+<li>Add the new vertex to both shapes, and then check the other three edges</li>
+</ul>
+</section>
+<section id="slicing-a-rectangle-demo" class="slide level2">
+<h2>Slicing a Rectangle Demo</h2>
 <div class="lab-mount" data-lab="slice" data-card="1.2,0,20" data-cut="-3,-1.5,25">
 
 </div>
 </section>
-<section id="d-slice-1" class="slide level2">
-<h2>3D Slice</h2>
+<section id="slicing-a-box" class="slide level2">
+<h2>Slicing a Box</h2>
+<p>Once you wrap your head around Geometric Algebra, going up one dimension is surprisingly similar.</p>
+<ul>
+<li>Imagine a blade in world space with hilt position <span class="math inline">\(H\)</span>, tip position <span class="math inline">\(T\)</span>. Join them to make a slice line:</li>
+</ul>
+<p><span class="math display">\[ \text{Slice Line in World Space} = H \vee T\]</span></p>
+<ul>
+<li>The blade is sweeping along direction <span class="math inline">\(S\)</span>. Join that with the slice line to make a slice plane:</li>
+</ul>
+<p><span class="math display">\[ \text{Slice Plane in World Space} = (\text{Slice Line in World Space}) \vee S\]</span></p>
+<ul>
+<li>We need the slice plane in the model space of the box. If you have a Motor <span class="math inline">\(M\)</span> that takes you from World to Model Space (no scaling please!), you can use the sandwich:</li>
+</ul>
+<p><span class="math display">\[ \text{Slice Plane in Model Space} = M(\text{Slice Plane in World Space})M^{-1}\]</span></p>
+</section>
+<section id="slicing-a-box-1" class="slide level2">
+<h2>Slicing a Box</h2>
+<p>A box is made up of six faces, and each one slices like a rectangle.</p>
+<ul>
+<li>The slice will make two new 3D shapes</li>
+<li>Use Math3d’s <code>PMath.distance(vertex, planeModelSpace)</code> to decide which shape each vertex goes</li>
+<li>To figure out where the slice plane cuts the edges, first choose a face and make an edge line using the join:</li>
+</ul>
+<p><span class="math display">\[ \text{Edge from 1 to 2} = \text{Vertex}_1 \vee \text{Vertex}_2\]</span></p>
+<ul>
+<li>Then the new vertex would be where the slice plane meets the edge line:</li>
+</ul>
+<p><span class="math display">\[ \text{New Vertex} = (\text{Slice Plane in Model Space}) \wedge (\text{Edge from 1 to 2})\]</span></p>
+<ul>
+<li><p>Add the new vertex to both shapes, and then check the remaining three edges for the face. Then repeat for the other five faces.</p></li>
+<li><p>The cut faces of the new shapes can be made out of triangles fanning out from the centre</p></li>
+</ul>
+</section>
+<section id="slicing-a-box-2" class="slide level2">
+<h2>Slicing a Box</h2>
+<div class="lab-mount" data-lab="box-slice">
+
+</div>
 
 </section>
     </div>
