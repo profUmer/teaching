@@ -215,7 +215,9 @@ export function makeOrbitView(stageEl, opts, paint) {
 
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();   // zoom the picture, not scroll the page
-    cam.view = clamp(cam.view * Math.exp(e.deltaY * 0.0015), 2, 30);
+    // in to half the starting view, or 2 if that's closer - a view that
+    // starts inside 2 (the box slice, 1.7) could otherwise only zoom out
+    cam.view = clamp(cam.view * Math.exp(e.deltaY * 0.0015), Math.min(2, view0 * 0.5), 30);
     view.repaint();
   }, { passive: false });
 

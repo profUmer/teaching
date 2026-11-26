@@ -1,26 +1,76 @@
 ---
 title: "Unity"
-subtitle: "Slicing 2D and 3D Shapes"
+subtitle: "Slicing Rectangles and Boxes"
 institute: "Faculty of Media, Creative Arts, and Design, Humber Polytechnic"
 format:
   revealjs:
     footer: "Unity, Umer Noor, PhD"
 ---
-## 2D Slice
-Say your slice goes from point $P$ towards direction $D$. If you are cool with Geometric Algebra, then the slice line can be written using the join product ($\vee$):
+## Slicing a Rectangle
+Do you remember the join and meet from Geometric Algebra? Will be handy for slicing!
 
-$$ L_{\text{world}} = P \vee D$$
+- Say your slice goes from point $P$ towards direction $D$ in world space. 
 
-Put this line into the model space of the object being cut using the sandwich with the motor $M$ that takes you from world to model space:
+- The slice line can be written using the join product ($\vee$):
 
-$$ L_{\text{model}} = ML_{\text{world}}M^{-1}$$
+$$ \text{Slice Line in World Space} = P \vee D$$
 
-Use Math2d's orientedDist(vertex, lineModel) function to determine which vertices belong to shapes created after the slice.
+- Put this line into the model space of the object being cut using the sandwich with the motor $M$ that takes you from world to model space (works if no scaling):
 
-Add extra vertices to both shapes when the line cuts through an edge.
+$$ \text{Slice Line in Model Space} = M(\text{Slice Line in World Space})M^{-1}$$
 
-## 2D Slice Demo
+## Slicing a Rectangle
+A rectangle is made up of four vertices, which makes four edges.
+
+- The slice will make two new shapes out of the rectangle
+- Use Math2d's `OrientedDist(vertex, lineModelSpace)` to decide which shape each vertex goes in
+- Now we gotta figure out where the slice line cuts any edges
+- Make the edge line from $\text{Vertex}_1$ to $\text{Vertex}_2$ using the join ($\vee$)
+
+$$ \text{Edge from 1 to 2} = \text{Vertex}_1 \vee \text{Vertex}_2$$
+
+- Then make a new vertex where the slice line meets the edge using the meet ($\wedge$)
+
+$$ \text{New Vertex} = (\text{Slice Line in Model Space}) \wedge (\text{Edge from 1 to 2})$$
+
+- Add the new vertex to both shapes, and then check the other three edges
+
+## Slicing a Rectangle Demo
 
 <div class="lab-mount" data-lab="slice" data-card="1.2,0,20" data-cut="-3,-1.5,25"></div>
 
-## 3D Slice
+## Slicing a Box
+Once you wrap your head around Geometric Algebra, going up one dimension is surprisingly similar.
+
+- Imagine a blade in world space with hilt position $H$, tip position $T$. Join them to make a slice line:
+
+$$ \text{Slice Line in World Space} = H \vee T$$
+
+- The blade is sweeping along direction $S$. Join that with the slice line to make a slice plane:
+
+$$ \text{Slice Plane in World Space} = (\text{Slice Line in World Space}) \vee S$$
+
+- We need the slice plane in the model space of the box. If you have a Motor $M$ that takes you from World to Model Space (no scaling please!), you can use the sandwich:
+
+$$ \text{Slice Plane in Model Space} = M(\text{Slice Plane in World Space})M^{-1}$$
+
+## Slicing a Box
+A box is made up of six faces, and each one slices like a rectangle.
+
+- The slice will make two new 3D shapes
+- Use Math3d's `PMath.distance(vertex, planeModelSpace)` to decide which shape each vertex goes
+- To figure out where the slice plane cuts the edges, first choose a face and make an edge line using the join:
+
+$$ \text{Edge from 1 to 2} = \text{Vertex}_1 \vee \text{Vertex}_2$$
+
+- Then the new vertex would be where the slice plane meets the edge line:
+
+$$ \text{New Vertex} = (\text{Slice Plane in Model Space}) \wedge (\text{Edge from 1 to 2})$$
+
+- Add the new vertex to both shapes, and then check the remaining three edges for the face. Then repeat for the other five faces.
+
+- The cut faces of the new shapes can be made out of triangles fanning out from the centre
+
+## Slicing a Box
+
+<div class="lab-mount" data-lab="box-slice"></div>

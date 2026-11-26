@@ -80,8 +80,11 @@
   <div class="lab-mount" id="t-cross" data-lab="cross" data-vec-a="3,1,0" data-vec-b="1,2,0" data-readout="true"></div>
   <!-- Math 1, vector operations: the dot product. -->
   <div class="lab-mount" id="t-dotp" data-lab="dot-product" data-vec-a="2,3" data-vec-b="4,1"></div>
-  <!-- Unity, slicing: Cutter.Split on a card, a step at a time. -->
+  <!-- Unity, slicing: RectangleSlicer.Slice on a card, a step at a time. -->
   <div class="lab-mount" id="t-slice" data-lab="slice" data-card="1.2,0,20" data-cut="-3,-1.5,25"></div>
+  <!-- Unity, slicing: BoxSlicer.Slice on a box, a face at a time. -->
+  <div class="lab-mount" id="t-boxslice" data-lab="box-slice" data-box="0.5,0,25"
+       data-hilt="-2.2,-1.3,-0.3" data-tip="2.3,1.2,0.1" data-swipe="0,-0.8,1"></div>
   <!-- Math 1, bullet hell: a radial ring, and shots aimed at the heart. -->
   <div class="lab-mount" id="t-radial" data-lab="bullets" data-pattern="radial" data-readout="true"></div>
   <div class="lab-mount" id="t-aimed" data-lab="bullets" data-pattern="aimed" data-readout="true"></div>
@@ -249,7 +252,7 @@ async function waitUntil(fn, timeout = 4000) {
 }
 
 const ready = () => waitUntil(() =>
-  document.querySelectorAll('.rig canvas').length === 26
+  document.querySelectorAll('.rig canvas').length === 27
   && document.querySelectorAll('#t-reflect .lab-value-row').length > 0
   && document.querySelectorAll('#t-accel .lab-value-row').length > 0
   && document.querySelector('#t-planes canvas')?.dataset.p2
@@ -267,6 +270,7 @@ const ready = () => waitUntil(() =>
   && document.getElementById('t-cross').dataset.result
   && document.getElementById('t-dotp').dataset.dot
   && document.getElementById('t-slice').dataset.listA
+  && document.getElementById('t-boxslice').dataset.capEdges
   && document.querySelectorAll('#t-aimed .lab-value-row').length > 0);
 
 /* ------------------------------------------------------------------ tests --- */
@@ -286,7 +290,7 @@ async function run() {
      context, so this stays as a guard against anything reintroducing one.
      See PLAN.md 2.1. */
   for (const id of ['polar', 'add', 'dot', 'reflect', '2d',
-                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel', 'ray', 'cyl', 'capped', 'rplanes', 'cross', 'dotp', 'slice', 'radial', 'aimed']) {
+                    'motion-p', 'motion-d', 'motion-v', 'accel', '3d-rot', '3d-trs', 'planes', 'parallel', 'ray', 'cyl', 'capped', 'rplanes', 'cross', 'dotp', 'slice', 'boxslice', 'radial', 'aimed']) {
     const canvas = document.getElementById(`t-${id}`).querySelector('canvas');
     const kind = canvas.getContext('2d') ? 'canvas2d' : 'webgl';
     record(kind === 'canvas2d', `${id.padEnd(8)} drawn by Canvas 2D`, kind, 'canvas2d');
@@ -1038,12 +1042,12 @@ async function run() {
     record(d.motor === '0.98 0.59 -0.10 0.17', 'slice  M = inverse(T R), Math2d formulas', d.motor, '0.98 0.59 -0.10 0.17');
     record(d.model === '-0.09 1.00 -0.42', 'slice  L_model = M L_world reverse(M)', d.model, '-0.09 1.00 -0.42');
     for (let i = 0; i < 4; i++) press('Next');
-    record(lists() === 'X | 0, 1, X', 'slice  edge 1 -> 2 crosses: X to both', lists(), 'X | 0, 1, X');
+    record(lists() === 'new 1 | 0, 1, new 1', 'slice  edge 1 -> 2 crosses: new 1 to both', lists(), 'new 1 | 0, 1, new 1');
     for (let i = 0; i < 3; i++) press('Next');
-    record(d.step === '7' && lists() === 'X, 2, 3, Y | 0, 1, X, Y', 'slice  all four edges: two halves, back in world space', `${d.step} ${lists()}`, '7 X, 2, 3, Y | 0, 1, X, Y');
+    record(d.step === '7' && lists() === 'new 1, 2, 3, new 2 | 0, 1, new 1, new 2', 'slice  all four edges: two halves, back in world space', `${d.step} ${lists()}`, '7 new 1, 2, 3, new 2 | 0, 1, new 1, new 2');
     press('Next');
     press('Next');
-    record(d.step === '8' && lists() === 'X, 2, 3, Y | 0, 1, X, Y', 'slice  Next stops at the halves pushed apart', `${d.step} ${lists()}`, '8 X, 2, 3, Y | 0, 1, X, Y');
+    record(d.step === '8' && lists() === 'new 1, 2, 3, new 2 | 0, 1, new 1, new 2', 'slice  Next stops at the halves pushed apart', `${d.step} ${lists()}`, '8 new 1, 2, 3, new 2 | 0, 1, new 1, new 2');
 
     // dragging P up past the card: the cut misses, everything is in b
     press('Reset');
@@ -1056,6 +1060,52 @@ async function run() {
     const tip = [-3 + 1.2 * Math.cos(Math.PI * 25 / 180), 1.8 + 1.2 * Math.sin(Math.PI * 25 / 180)];
     drag('t-slice', tip, [-3, 2.6], { view: 2.7 });
     record(sl('D') === '90', 'slice  drag D tip turns D', sl('D'), '90');
+    // the crossing on edge 1 -> 2 is the meet L_model ^ (V1 v V2), not a lerp:
+    // its working writes out the edge's line and the meet
+    // (back to the starting cut first: the drags above moved P and D)
+    press('Reset');
+    setSlider('t-slice', 'Py', -1.5);
+    setSlider('t-slice', 'D', 25);
+    for (let i = 0; i < 4; i++) press('Next');
+    const w = lab.querySelector('.slice-working').textContent;
+    record(w.includes('∧') && w.includes('∨') && !w.includes('Lerp'), 'slice  crossing is a meet, no lerp', w.includes('∧') ? 'meet' : w, 'meet');
+  }
+
+  /* -- box-slice: BoxSlicer.Slice, one face per Next ----------------------- */
+  {
+    const lab = document.getElementById('t-boxslice');
+    const d = lab.dataset;
+    const press = (name) => [...lab.querySelectorAll('.lab-button')].find((b) => b.textContent === name).click();
+    // its x, y and z sliders repeat in each group, so find the group first
+    const setIn = (title, axis, value) => {
+      const g = [...lab.querySelectorAll('.ray-group')].find((e) => e.querySelector('.ray-group-title').textContent.trim() === title);
+      const row = [...g.querySelectorAll('.lab-slider')].find((r) => r.querySelector('.lab-slider-name').textContent.trim() === axis);
+      const input = row.querySelector('input[type="range"]');
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    // The box at (0.5, 0, 0), yawed 25 degrees; the blade from (-2.2, -1.3, -0.3)
+    // to (2.3, 1.2, 0.1), swiped along (0, -0.8, 1): in the box's space, the
+    // normalised plane Math3d gives is -0.64 e1 + 0.70 e2 + 0.32 e3 - 0.11 e0,
+    // with 4 corners above it, and it crosses 6 box edges: a hexagonal cap
+    record(d.step === '0' && d.model === '-0.64 0.70 0.32 -0.11', 'box    plane in model space, Math3d formulas', `${d.step} ${d.model}`, '0 -0.64 0.70 0.32 -0.11');
+    record(d.above === '4', 'box    4 corners above the cut', d.above, '4');
+    record(d.model === d.joined, 'box    sandwich M P M^-1 = Block.Cut\'s joined plane', `${d.model} | ${d.joined}`, 'the same');
+    const edges = d.capEdges.split(', ').map((e) => e.split('>'));
+    const froms = edges.map((e) => e[0]).sort().join(), tos = edges.map((e) => e[1]).sort().join();
+    record(edges.length === 6 && froms === tos, 'box    6 cap edges, each point once in, once out', `${edges.length} ${froms} | ${tos}`, '6, the same names');
+    const [va, vb] = d.volumes.split(' ').map(Number);
+    near('box    halves add up to the unit cube', va + vb, 1, 1e-4);
+    record(va > 0 && vb > 0, 'box    both halves wind outward (volume > 0)', d.volumes, 'both > 0');
+    press('Next'); press('Next'); press('Next');
+    record(d.step === '3' && d.faceUp !== '' && d.faceDown !== '', 'box    face 1 (right) is split in two', `${d.step} ${d.faceUp} | ${d.faceDown}`, '3, two parts');
+    for (let i = 0; i < 20; i++) press('Next');
+    record(d.step === '11', 'box    Next stops at the halves pushed apart', d.step, '11');
+    // a level blade swept straight forward, above the box: it misses
+    press('Reset');
+    setIn('Hilt H', 'y', 2.5); setIn('Tip T', 'y', 2.5);
+    setIn('Swipe S', 'x', 0); setIn('Swipe S', 'y', 0); setIn('Swipe S', 'z', 1);
+    record(d.capEdges === '–' && (d.above === '0' || d.above === '8'), 'box    a cut that misses: no cap', `${d.capEdges} ${d.above}`, '– 0 or 8');
   }
 
   /* -- dot product: A . B, the angle, and a length along the other ------- */

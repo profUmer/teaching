@@ -1,6 +1,6 @@
 # Project status and plan
 
-Last updated: 2026-11-01 (§1.7, the Unity `slice` deck)
+Last updated: 2026-11-26 (§1.7, the Unity `slice` deck: the meet, and the 3D box demo)
 
 Where the Beamer → Quarto migration stands, what is decided, and what is still
 open. [README.md](README.md) is the reference for using what exists;
@@ -404,9 +404,24 @@ Slides so far:
 
 | slide | state |
 | --- | --- |
-| 2D Slice | text: $L = P \vee D$, the sandwich $ML_{world}M^{-1}$, sides by `OrientedDist`, the edge walk |
-| 2D Slice Demo | the `slice` lab (below) — **done, checked by the lecturer** |
-| 3D Slice | **empty** |
+| 2D Slice | text: $L = P \vee D$, the sandwich $ML_{world}M^{-1}$ |
+| 2D Slice: each edge | sides by `OrientedDist`, the crossing as a meet $X = L_{model} \wedge (V_1 \vee V_2)$, no $t$, UVs from the card's flat map (2026-11-26) |
+| 2D Slice Demo | the `slice` lab (below) — checked by the lecturer before the 2026-11-26 change to the meet; **not yet re-checked** |
+| 3D Slice | text: Slice Line $= H \vee T$, Slice Plane $=$ Slice Line $\vee S$, into model space by the sandwich with $M$ (no scaling) - the lecturer's wording |
+| 3D Slice: six rectangles | `BoxSlicer.Slice`: each face split like the rectangle, new vertex $=$ Slice Plane $\wedge$ (edge line), the cut faces as triangles fanned from the centre |
+| 3D Slice Demo | the `box-slice` lab (below) — **new 2026-11-26, not yet checked by the lecturer** |
+
+**2026-11-26: the newer slicing method.** The course now cuts with
+`RectangleSlicer` (A1, CardCut, `sandbox/CutCard`) and the box-only
+`BoxSlicer` (A2, BoxCut, `saber-course-materials/tests/CutBox`): a crossing is
+the meet of the cut with the edge's line, not a `t` and a lerp, and UVs come
+from each face's flat map. The `slice` lab's crossing step now writes out the
+edge's line $E = V_i \vee V_j$ and $X = L_{model} \wedge E$ (Math2d's join and
+meet, formula for formula) instead of `t` and "Lerp"; "Back in world space"
+lists the crossings' UVs. The new `box-slice` lab (`assets/box-slice-lab.js`)
+does the same for the box on `orbit3d.js`, in the same step-by-step style; its
+join and meet are Math3d's formulas. `lab-selftest.html`: 235 → 254 checks.
+The text below on `t` describes the lab before this change.
 
 The `slice` lab, one step per **Next** (reworked 2026-11-01 at the
 lecturer's request): the cut in world space, with $P$, $D$ ($x\,e_{20} + y\,e_{01} + w\,e_{12}$)
@@ -449,7 +464,7 @@ Decided while building it:
 
 **To do next time:**
 
-1. **The 3D Slice slide** — text, then a demo. Natural shape: the same steps
+1. ~~**The 3D Slice slide**~~ — done 2026-11-26 as the `box-slice` lab, for the box-only `BoxSlicer` rather than `MeshSlicer`. The old idea: Natural shape: the same steps
    for `MeshSlicer.Slice` — a plane in object space, signed distances per
    vertex, a triangle that crosses split into three, the crossing points
    collected and fan-triangulated into the cap. Probably on `orbit3d.js` (the
